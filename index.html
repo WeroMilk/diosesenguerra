@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dioses en Guerra - Juego de Cartas Mitológicas</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23060508' width='32' height='32' rx='4'/><text x='16' y='23' font-size='20' font-weight='700' text-anchor='middle' fill='%23f0d85c' font-family='Georgia,serif'>D</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Pantalla de carga / splash -->
+  <div id="splash-screen" class="screen active">
+    <div class="splash-background castle-bg"></div>
+    <div class="splash-content">
+      <h1 class="splash-title">Dioses en Guerra</h1>
+      <p class="splash-subtitle">Juego de Cartas Mitológicas</p>
+      <div class="splash-loader" aria-hidden="true">
+        <span class="splash-loader-bar"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de menú principal -->
+  <div id="menu-screen" class="screen">
+    <div class="menu-background castle-bg"></div>
+    <div class="menu-content">
+      <h1 class="game-title">Dioses en Guerra</h1>
+      <p class="game-subtitle">Juego de Cartas Mitológicas</p>
+      <div class="menu-stats" id="menu-stats">
+        <span id="menu-logros-count">Logros: 0/0</span>
+        <span id="menu-rendiciones-count">Rendiciones: 0</span>
+      </div>
+      <nav class="menu-options">
+        <button id="btn-vs-ia" class="menu-btn">Jugar vs IA</button>
+        <div id="dificultad-container" class="dificultad-container hidden">
+          <label for="select-mazo" class="mazo-label">Mazo:</label>
+          <select id="select-mazo" class="select-mazo" title="Mazo para la partida">
+            <option value="clasico">Clásico</option>
+          </select>
+          <button class="diff-btn" data-diff="facil">Fácil</button>
+          <button class="diff-btn" data-diff="intermedio">Intermedio</button>
+          <button class="diff-btn" data-diff="dificil">Difícil</button>
+          <button class="diff-btn" data-diff="jarcor">JARCOR</button>
+          <button type="button" id="btn-cancelar-dificultad" class="menu-btn secondary">Cancelar</button>
+        </div>
+        <button id="btn-vs-local" class="menu-btn">1 vs 1 Local</button>
+        <button id="btn-torneo" class="menu-btn">Torneo</button>
+        <button id="btn-survival" class="menu-btn">Supervivencia</button>
+        <button id="btn-online" class="menu-btn">Jugar online</button>
+        <button id="btn-reglas" class="menu-btn secondary">Reglas</button>
+        <button id="btn-sonido" class="menu-btn secondary" title="Opciones de sonido">Sonido</button>
+        <button id="btn-logros" class="menu-btn secondary">Logros</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Modal de reglas -->
+  <div id="reglas-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Reglas del juego</h2>
+      <div class="reglas-texto"></div>
+      <button id="cerrar-reglas" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal logros -->
+  <div id="logros-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Logros</h2>
+      <div id="logros-lista" class="logros-lista"></div>
+      <button id="cerrar-logros" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal misiones diarias -->
+  <div id="misiones-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Misiones del d&#237;a</h2>
+      <div id="misiones-lista" class="misiones-lista"></div>
+      <button id="cerrar-misiones" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal campaña: selección de nivel -->
+  <div id="campania-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Campaña</h2>
+      <p id="campania-texto" class="campania-texto"></p>
+      <div id="campania-niveles" class="campania-niveles"></div>
+      <button id="cerrar-campania" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal sonido -->
+  <div id="sonido-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Sonido</h2>
+      <div class="sonido-opciones">
+        <label><input type="checkbox" id="sonido-musica" checked> M&#250;sica de fondo</label>
+        <label><input type="checkbox" id="sonido-efectos" checked> Efectos de sonido</label>
+      </div>
+      <button id="cerrar-sonido" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal online: crear sala / unir -->
+  <div id="online-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Jugar online</h2>
+      <p id="online-status" class="online-status">Crea una sala o &#250;nete con un c&#243;digo.</p>
+      <div id="online-form" class="online-form">
+        <label>Tu nombre: <input type="text" id="online-nick" maxlength="20" placeholder="Nick" value="Jugador"></label>
+        <div class="online-actions">
+          <button type="button" id="online-crear" class="menu-btn">Crear sala</button>
+          <button type="button" id="online-unir" class="menu-btn">Unir con c&#243;digo</button>
+        </div>
+        <label id="online-codigo-wrap" class="hidden">C&#243;digo: <input type="text" id="online-codigo" placeholder="ABC12" maxlength="8"></label>
+      </div>
+      <div id="online-sala-creada" class="hidden">
+        <p>C&#243;digo de sala: <strong id="online-codigo-mostrar"></strong></p>
+        <p>Comparte el c&#243;digo con tu rival. Esperando...</p>
+      </div>
+      <div id="online-ranking-wrap" class="hidden">
+        <h3>Ranking</h3>
+        <ul id="online-ranking-lista"></ul>
+      </div>
+      <button id="cerrar-online" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal desafíos -->
+  <div id="desafios-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Desafíos</h2>
+      <div id="desafios-lista" class="desafios-lista"></div>
+      <button id="cerrar-desafios" class="menu-btn">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Pantalla de juego: layout horizontal a pantalla completa -->
+  <div id="game-screen" class="screen game-screen-full">
+    <div class="game-screen-castle-bg castle-bg" aria-hidden="true"></div>
+    <div class="game-header">
+      <div class="turn-indicator">
+        <span id="turn-number-label">Turno 1</span>
+        <span id="turn-label"> Atacando: Tú</span>
+        <span id="phase-label" aria-hidden="true"></span>
+      </div>
+      <div class="actions-counter actions-counter-center">
+        <span id="actions-left">Movimientos: 2</span>
+      </div>
+      <button type="button" id="btn-rendirse" class="btn-surrender" title="Rendirse">Rendirse</button>
+    </div>
+
+    <div class="board board-horizontal">
+      <!-- Columna izquierda: Tú (jugador) -->
+      <div class="player-zone" id="player-zone">
+        <div class="player-info">
+          <span class="player-name" id="player-name">Tú</span>
+        </div>
+        <div class="hidden-row-label">Mano</div>
+        <div class="hand-scroll-wrap">
+          <button type="button" class="hand-nav hand-nav-left" id="hand-scroll-left" aria-label="Ver más cartas a la izquierda">‹</button>
+          <div class="hand-row-scroll" id="player-hand-scroll">
+            <div class="hand-row" id="player-hand-row">
+              <div class="hand-slot" data-slot="0"></div>
+              <div class="hand-slot" data-slot="1"></div>
+              <div class="hand-slot" data-slot="2"></div>
+              <div class="hand-slot" data-slot="3"></div>
+              <div class="hand-slot" data-slot="4"></div>
+              <div class="hand-slot" data-slot="5"></div>
+              <div class="hand-slot" data-slot="6"></div>
+            </div>
+          </div>
+          <button type="button" class="hand-nav hand-nav-right" id="hand-scroll-right" aria-label="Ver más cartas a la derecha">›</button>
+        </div>
+        <div class="hidden-row-label">Soporte</div>
+        <div class="hidden-row">
+          <div class="hidden-slot" data-slot="0" data-player="player"></div>
+          <div class="hidden-slot" data-slot="1" data-player="player"></div>
+          <div class="hidden-slot" data-slot="2" data-player="player"></div>
+        </div>
+        <div class="hidden-row-label">Héroes</div>
+        <div class="heroes-row">
+          <div class="hero-slot" data-slot="0" data-player="player"></div>
+          <div class="hero-slot" data-slot="1" data-player="player"></div>
+        </div>
+      </div>
+
+      <!-- Columna central: mazo, descarte y acciones -->
+      <div class="center-zone">
+        <div class="deck-area">
+          <div class="deck-pile" id="deck-pile" title="Mazo">
+            <span id="deck-count">0</span>
+          </div>
+          <div class="discard-pile" id="discard-pile" title="Descarte">
+            <span id="discard-count">0</span>
+          </div>
+        </div>
+        <div class="game-footer">
+          <button id="btn-poner-energia" class="action-btn">Poner energía</button>
+        <button id="btn-poner-soporte" class="action-btn">A soporte</button>
+          <button id="btn-poner-boca-abajo" class="action-btn">Poner en héroe</button>
+          <button id="btn-atacar" class="action-btn">Atacar</button>
+          <button id="btn-usar-efecto" class="action-btn">Usar efecto</button>
+          <button id="btn-pasar" class="action-btn">Pasar</button>
+          <button id="btn-sugerir" class="action-btn secondary" type="button" title="Sugerir jugada (Fácil/Intermedio)">Sugerir</button>
+          <button id="btn-cancelar-accion" class="action-btn secondary hidden" type="button">Cancelar</button>
+          <button id="btn-end-turn" class="action-btn primary hidden">Terminar turno</button>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Rival -->
+      <div class="player-zone rival-zone" id="rival-zone">
+        <div class="player-info">
+          <span class="player-name" id="rival-name">Rival</span>
+        </div>
+        <div class="hidden-row-label">Héroes</div>
+        <div class="heroes-row">
+          <div class="hero-slot" data-slot="0" data-player="rival"></div>
+          <div class="hero-slot" data-slot="1" data-player="rival"></div>
+        </div>
+        <div class="hidden-row-label">Soporte</div>
+        <div class="hidden-row">
+          <div class="hidden-slot" data-slot="0" data-player="rival"></div>
+          <div class="hidden-slot" data-slot="1" data-player="rival"></div>
+          <div class="hidden-slot" data-slot="2" data-player="rival"></div>
+        </div>
+        <div class="hidden-row-label">Mano</div>
+        <div class="hand-scroll-wrap">
+          <button type="button" class="hand-nav hand-nav-left" id="rival-hand-scroll-left" aria-label="Ver más cartas a la izquierda">‹</button>
+          <div class="hand-row-scroll" id="rival-hand-scroll">
+            <div class="hand-row" id="rival-hand-row">
+              <div class="hand-slot" data-slot="0" data-player="rival"></div>
+              <div class="hand-slot" data-slot="1" data-player="rival"></div>
+              <div class="hand-slot" data-slot="2" data-player="rival"></div>
+              <div class="hand-slot" data-slot="3" data-player="rival"></div>
+              <div class="hand-slot" data-slot="4" data-player="rival"></div>
+              <div class="hand-slot" data-slot="5" data-player="rival"></div>
+              <div class="hand-slot" data-slot="6" data-player="rival"></div>
+            </div>
+          </div>
+          <button type="button" class="hand-nav hand-nav-right" id="rival-hand-scroll-right" aria-label="Ver más cartas a la derecha">›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel chat / log de partida (daños, curaciones; en el futuro mensajes de jugadores) -->
+    <div class="game-chat-panel" id="game-chat-panel">
+      <div class="game-chat-header">
+        <span class="game-chat-title">Log de partida</span>
+      </div>
+      <div class="game-chat-messages" id="game-log-messages"></div>
+      <div class="game-chat-input-wrap" id="game-chat-input-wrap">
+        <input type="text" class="game-chat-input" id="game-chat-input" placeholder="Próximamente: escribe aquí (modo online)" disabled />
+      </div>
+    </div>
+
+    <!-- Overlay de configuración sobre el tablero -->
+    <div id="setup-overlay" class="setup-overlay hidden">
+      <div class="setup-overlay-backdrop"></div>
+      <div class="setup-overlay-content">
+        <div class="setup-header">
+          <h2 id="setup-titulo">Configura tu campo</h2>
+          <p class="setup-instructions" id="setup-instructions">
+            Arrastra las cartas desde tu mano a las zonas del tablero: 2 héroes, 3 de soporte y 3 en mano.
+          </p>
+          <div class="setup-counters">
+            <span class="setup-counter" id="setup-counter-heroes">Héroes: 0/2</span>
+            <span class="setup-counter" id="setup-counter-soporte">Soporte: 0/3</span>
+            <span class="setup-counter" id="setup-counter-mano">Mano: 0/3</span>
+          </div>
+        </div>
+        <div class="setup-pool-container">
+          <div class="setup-pool-label">Cartas disponibles</div>
+          <div class="setup-pool" id="setup-pool"></div>
+        </div>
+        <div class="setup-actions">
+          <button id="btn-confirmar-setup" class="menu-btn" disabled>Confirmar</button>
+          <button type="button" id="btn-volver-setup" class="menu-btn secondary">Volver al menú</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje grande: héroe asesinado -->
+    <div id="hero-kill-message" class="hero-kill-message hidden" aria-live="polite">
+      <span id="hero-kill-text"></span>
+    </div>
+
+    <!-- Modal de selección (e.g. elegir héroe para atacar, carta para quemar) -->
+    <div id="selection-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="selection-title">Selecciona</h3>
+        <div id="selection-options" class="selection-options"></div>
+        <button id="selection-cancel" class="menu-btn secondary">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Modal fin de partida -->
+    <div id="gameover-modal" class="modal hidden">
+      <div class="modal-content gameover-content">
+        <h2 id="gameover-title">¡Victoria!</h2>
+        <p id="gameover-message"></p>
+        <button id="btn-volver-menu" class="menu-btn">Volver al menú</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="cartas.js"></script>
+  <script src="mazos.js"></script>
+  <script src="game.js"></script>
+  <script src="ia.js"></script>
+  <script src="datos.js"></script>
+  <script src="progresion.js"></script>
+  <script src="online.js"></script>
+  <script src="sounds.js"></script>
+  <script src="ui.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Respaldo: pasar del splash al menú y enganchar todos los botones del menú si init() no lo hizo
+    (function () {
+      var splash = document.getElementById('splash-screen');
+      var menu = document.getElementById('menu-screen');
+      if (!splash || !menu) return;
+      function engancharBotonesMenu() {
+        if (window.__menuInitDone) return;
+        var byId = document.getElementById.bind(document);
+        // Jugar vs IA: mostrar selector de dificultad
+        if (byId('btn-vs-ia')) {
+          byId('btn-vs-ia').onclick = function () {
+            var c = byId('dificultad-container');
+            if (c) c.classList.remove('hidden');
+          };
+        }
+        // Dificultad: cada botón inicia partida vs IA y cierra el selector
+        document.querySelectorAll('.diff-btn').forEach(function (b) {
+          b.onclick = function () {
+            var diff = b.getAttribute('data-diff') || 'facil';
+            if (window.__empezarPartida) window.__empezarPartida('ia', diff);
+            var dc = byId('dificultad-container');
+            if (dc) dc.classList.add('hidden');
+          };
+        });
+        if (byId('btn-cancelar-dificultad')) byId('btn-cancelar-dificultad').onclick = function () { var c = byId('dificultad-container'); if (c) c.classList.add('hidden'); };
+        if (byId('btn-vs-local')) byId('btn-vs-local').onclick = function () { if (window.__empezarPartida) window.__empezarPartida('local'); };
+        if (byId('btn-torneo')) byId('btn-torneo').onclick = function () { if (window.__empezarTorneo) window.__empezarTorneo(); };
+        if (byId('btn-survival')) byId('btn-survival').onclick = function () { if (window.__empezarSurvival) window.__empezarSurvival(); };
+        if (byId('btn-online')) byId('btn-online').onclick = function () { if (window.__mostrarOnline) window.__mostrarOnline(); };
+        if (byId('btn-reglas')) byId('btn-reglas').onclick = function () { if (window.__mostrarReglas) window.__mostrarReglas(); };
+        if (byId('btn-sonido')) byId('btn-sonido').onclick = function () { if (window.__mostrarSonido) window.__mostrarSonido(); };
+        if (byId('btn-logros')) byId('btn-logros').onclick = function () { if (window.__mostrarLogros) window.__mostrarLogros(); };
+        if (byId('cerrar-reglas')) byId('cerrar-reglas').onclick = function () { var m = byId('reglas-modal'); if (m) m.classList.add('hidden'); };
+        if (byId('cerrar-logros')) byId('cerrar-logros').onclick = function () { var m = byId('logros-modal'); if (m) m.classList.add('hidden'); };
+        if (byId('cerrar-sonido')) byId('cerrar-sonido').onclick = function () { var m = byId('sonido-modal'); if (m) m.classList.add('hidden'); };
+        if (byId('cerrar-online')) byId('cerrar-online').onclick = function () { if (window.__cerrarOnline) window.__cerrarOnline(); else { var m = byId('online-modal'); if (m) m.classList.add('hidden'); } };
+      }
+      function mostrarMenu() {
+        document.querySelectorAll('.screen').forEach(function (el) { el.classList.remove('active'); });
+        menu.classList.add('active');
+        if (typeof window.actualizarMenuStats === 'function') try { window.actualizarMenuStats(); } catch (e) {}
+        if (window.__menuInit) setTimeout(function () { window.__menuInit(); }, 0);
+        setTimeout(engancharBotonesMenu, 150);
+      }
+      setTimeout(function () {
+        if (splash.classList.contains('active')) mostrarMenu();
+      }, 2500);
+      setTimeout(function () {
+        if (menu.classList.contains('active') && !window.__menuInitDone) engancharBotonesMenu();
+      }, 3500);
+    })();
+  </script>
+</body>
+</html>

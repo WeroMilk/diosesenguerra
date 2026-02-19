@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Verificación - Dioses en Guerra</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+    .ok { color: #0f0; }
+    .error { color: #f00; }
+    .info { color: #ff0; }
+  </style>
+</head>
+<body>
+  <h1>Verificación del Juego</h1>
+  <div id="log"></div>
+  
+  <script>
+    const log = document.getElementById('log');
+    function addLog(msg, type = 'info') {
+      const p = document.createElement('p');
+      p.className = type;
+      p.textContent = msg;
+      log.appendChild(p);
+    }
+    
+    addLog('Verificando archivos...', 'info');
+    
+    // Verificar que los archivos existan
+    const archivos = ['cartas.js', 'game.js', 'ia.js', 'sounds.js', 'ui.js', 'script.js', 'style.css'];
+    let cargados = 0;
+    let errores = 0;
+    
+    archivos.forEach(archivo => {
+      if (archivo.endsWith('.js')) {
+        const script = document.createElement('script');
+        script.src = archivo;
+        script.onload = () => {
+          cargados++;
+          addLog(`✓ ${archivo} cargado`, 'ok');
+          verificarObjetos();
+        };
+        script.onerror = () => {
+          errores++;
+          addLog(`✗ Error cargando ${archivo}`, 'error');
+        };
+        document.head.appendChild(script);
+      } else {
+        // CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = archivo;
+        link.onload = () => {
+          cargados++;
+          addLog(`✓ ${archivo} cargado`, 'ok');
+        };
+        link.onerror = () => {
+          errores++;
+          addLog(`✗ Error cargando ${archivo}`, 'error');
+        };
+        document.head.appendChild(link);
+      }
+    });
+    
+    function verificarObjetos() {
+      if (cargados < 6) return; // Esperar a que todos los JS se carguen
+      
+      setTimeout(() => {
+        addLog('Verificando objetos globales...', 'info');
+        if (typeof CARTAS !== 'undefined') addLog('✓ CARTAS definido', 'ok');
+        else addLog('✗ CARTAS no definido', 'error');
+        
+        if (typeof Game !== 'undefined') addLog('✓ Game definido', 'ok');
+        else addLog('✗ Game no definido', 'error');
+        
+        if (typeof IA !== 'undefined') addLog('✓ IA definido', 'ok');
+        else addLog('✗ IA no definido', 'error');
+        
+        if (typeof Sounds !== 'undefined') addLog('✓ Sounds definido', 'ok');
+        else addLog('✗ Sounds no definido', 'error');
+        
+        if (typeof UI !== 'undefined') addLog('✓ UI definido', 'ok');
+        else addLog('✗ UI no definido', 'error');
+        
+        addLog('', 'info');
+        addLog('Si todos los objetos están definidos, el juego debería funcionar.', 'info');
+        addLog('Abre index.html para jugar.', 'info');
+      }, 500);
+    }
+  </script>
+</body>
+</html>

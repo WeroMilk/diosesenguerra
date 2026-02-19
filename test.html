@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test - Verificar archivos</title>
+</head>
+<body>
+  <h1>Test de carga de archivos</h1>
+  <div id="resultado"></div>
+  <script>
+    const archivos = ['cartas.js', 'game.js', 'ia.js', 'sounds.js', 'ui.js', 'script.js'];
+    const resultado = document.getElementById('resultado');
+    let cargados = 0;
+    
+    archivos.forEach(archivo => {
+      const script = document.createElement('script');
+      script.src = archivo;
+      script.onload = () => {
+        cargados++;
+        resultado.innerHTML += `<p>✓ ${archivo} cargado</p>`;
+        if (cargados === archivos.length) {
+          resultado.innerHTML += '<h2 style="color: green;">Todos los archivos cargados correctamente</h2>';
+          resultado.innerHTML += '<p>Verificando objetos globales...</p>';
+          if (typeof CARTAS !== 'undefined') resultado.innerHTML += '<p>✓ CARTAS definido</p>';
+          if (typeof Game !== 'undefined') resultado.innerHTML += '<p>✓ Game definido</p>';
+          if (typeof IA !== 'undefined') resultado.innerHTML += '<p>✓ IA definido</p>';
+          if (typeof Sounds !== 'undefined') resultado.innerHTML += '<p>✓ Sounds definido</p>';
+          if (typeof UI !== 'undefined') resultado.innerHTML += '<p>✓ UI definido</p>';
+          const s = document.createElement('script');
+          s.src = 'simulacion.js';
+          s.onload = () => {
+            resultado.innerHTML += '<p>✓ simulacion.js cargado</p><h2>Ejecutando 100 partidas...</h2>';
+            const r = window.Simulacion.ejecutar100();
+            resultado.innerHTML += `
+              <h2 style="color: green;">${r.total} partidas en ${r.seg}s</h2>
+              <p><strong>Victorias Jugador:</strong> ${r.winsPlayer} &nbsp;|&nbsp; <strong>Victorias Rival (IA):</strong> ${r.winsRival}</p>
+              <p><strong>Partidas con ganador:</strong> ${r.partidasConGanador || r.total - r.timeouts} &nbsp;|&nbsp; <strong>Timeouts:</strong> ${r.timeouts} &nbsp;|&nbsp; <strong>Errores:</strong> ${r.errores}</p>
+            `;
+          };
+          document.head.appendChild(s);
+        }
+      };
+      script.onerror = () => {
+        resultado.innerHTML += `<p style="color: red;">✗ Error cargando ${archivo}</p>`;
+      };
+      document.head.appendChild(script);
+    });
+  </script>
+</body>
+</html>

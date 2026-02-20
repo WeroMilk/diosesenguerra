@@ -65,7 +65,7 @@
     var j = Game.estado.player;
     var necesitaHeroe = opt.efectoId === 'curacion' || opt.efectoId === 'antidoto';
     var heroesAliados = [];
-    j.heroes.forEach(function (h, i) { if (h && h.vida > 0) heroesAliados.push({ heroeSlot: i, nombre: h.nombre, emoji: getEmojiCarta(h) }); });
+    j.heroes.forEach(function (h, i) { if (h && h.vida > 0) heroesAliados.push({ heroeSlot: i, nombre: h.nombre, emoji: getEmojiCarta(h), iconUrl: typeof getCardIconUrl !== 'undefined' ? getCardIconUrl(h) : null }); });
     function ejecutar(heroeSlot) {
       var result;
       if (opt.tipo === 'boca_abajo') {
@@ -105,12 +105,12 @@
       if (carta && carta.tipo === 'trampa') {
         const efectoId = carta.efectoId || carta.id;
         const nombre = carta.nombre || efectoId;
-        opciones.push({ tipo: 'boca_abajo', slot: i, nombre: nombre + ' (soporte ' + (i + 1) + ')', efectoId, emoji: getEmojiCarta(carta) });
+        opciones.push({ tipo: 'boca_abajo', slot: i, nombre: nombre + ' (soporte ' + (i + 1) + ')', efectoId, emoji: getEmojiCarta(carta), iconUrl: typeof getCardIconUrl !== 'undefined' ? getCardIconUrl(carta) : null });
       }
     });
     j.mano.forEach((carta, i) => {
       if (carta && carta.tipo === 'trampa' && efectosDesdeMano.includes(carta.efectoId || carta.id)) {
-        opciones.push({ tipo: 'mano', indiceMano: i, nombre: carta.nombre || (carta.efectoId || carta.id), efectoId: carta.efectoId || carta.id, emoji: getEmojiCarta(carta) });
+        opciones.push({ tipo: 'mano', indiceMano: i, nombre: carta.nombre || (carta.efectoId || carta.id), efectoId: carta.efectoId || carta.id, emoji: getEmojiCarta(carta), iconUrl: typeof getCardIconUrl !== 'undefined' ? getCardIconUrl(carta) : null });
       }
     });
     if (opciones.length === 0) {
@@ -307,12 +307,25 @@
 
   let dragHandIndex = null;
   var touchHandIndex = null;
+  /** Al arrastrar héroe enemigo: slot del rival (objetivo del ataque). */
+  var dragRivalHeroSlot = null;
 
   function onGameDragStart(e) {
-    const slot = e.target.closest('.hand-slot');
-    if (!slot || slot.dataset.index === undefined) return;
     const s = Game.estado;
     if (!s || s.turnoActual !== 'player' || s.ganador) return;
+    const rivalHeroSlot = e.target.closest('.hero-slot[data-player="rival"]');
+    if (rivalHeroSlot && rivalHeroSlot.dataset.slot !== undefined) {
+      const slotIdx = parseInt(rivalHeroSlot.dataset.slot, 10);
+      if (s.rival.heroes[slotIdx] && s.rival.heroes[slotIdx].vida > 0) {
+        e.dataTransfer.setData('text/plain', 'rival-hero-' + slotIdx);
+        e.dataTransfer.effectAllowed = 'move';
+        dragRivalHeroSlot = slotIdx;
+        rivalHeroSlot.classList.add('card-dragging');
+      }
+      return;
+    }
+    const slot = e.target.closest('.hand-slot');
+    if (!slot || slot.dataset.index === undefined) return;
     const idx = parseInt(slot.dataset.index, 10);
     const carta = s.player.mano[idx];
     if (!carta) return;
@@ -324,24 +337,38 @@
 
   function onGameDragEnd(e) {
     document.querySelectorAll('.hand-slot').forEach(el => el.classList.remove('card-dragging'));
-    document.querySelectorAll('.hero-slot').forEach(el => el.classList.remove('drop-target-active'));
+    document.querySelectorAll('.hero-slot').forEach(el => el.classList.remove('card-dragging', 'drop-target-active'));
     document.querySelectorAll('.hidden-slot').forEach(el => el.classList.remove('drop-target-active'));
     dragHandIndex = null;
+    dragRivalHeroSlot = null;
   }
 
   function onGameDragOver(e) {
     document.querySelectorAll('.hero-slot').forEach(el => el.classList.remove('drop-target-active'));
     document.querySelectorAll('.hidden-slot').forEach(el => el.classList.remove('drop-target-active'));
-    if (dragHandIndex == null) return;
     const s = Game.estado;
     if (!s) return;
+    if (dragRivalHeroSlot != null) {
+      const playerHeroSlot = e.target.closest('.hero-slot[data-player="player"]');
+      if (playerHeroSlot && !playerHeroSlot.classList.contains('vacio') && playerHeroSlot.dataset.slot !== undefined) {
+        const atacanteSlot = parseInt(playerHeroSlot.dataset.slot, 10);
+        if (Game.puedeAtacar('player', atacanteSlot)) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          playerHeroSlot.classList.add('drop-target-active');
+        }
+      }
+      return;
+    }
+    if (dragHandIndex == null) return;
     const carta = s.player.mano[dragHandIndex];
     if (!carta) return;
     const supportSlot = e.target.closest('.hidden-slot[data-player="player"]');
     if (supportSlot && supportSlot.dataset.slot !== undefined) {
       const slotIdx = parseInt(supportSlot.dataset.slot, 10);
       const bocaAbajo = s.player.bocaAbajo || [];
-      if (!bocaAbajo[slotIdx]) {
+      const tipoRequerido = (typeof Game !== 'undefined' && Game.TIPO_SLOT_SOPORTE) ? Game.TIPO_SLOT_SOPORTE[slotIdx] : null;
+      if (!bocaAbajo[slotIdx] && (!tipoRequerido || carta.tipo === tipoRequerido)) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         supportSlot.classList.add('drop-target-active');
@@ -354,7 +381,8 @@
       const slotIdx = parseInt(heroSlot.dataset.slot, 10);
       const heroe = s.player.heroes[slotIdx];
       if (!heroe || heroe.vida <= 0) return;
-      if ((heroe.energiaStack && heroe.energiaStack.length >= 3)) return;
+      const maxE = (typeof Game !== 'undefined' && Game.maxEnergiaHeroe) ? Game.maxEnergiaHeroe(heroe) : 3;
+      if (heroe.energiaStack && heroe.energiaStack.length >= maxE) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       heroSlot.classList.add('drop-target-active');
@@ -365,9 +393,73 @@
     e.preventDefault();
     document.querySelectorAll('.hero-slot').forEach(el => el.classList.remove('drop-target-active'));
     document.querySelectorAll('.hidden-slot').forEach(el => el.classList.remove('drop-target-active'));
-    if (dragHandIndex == null) return;
     const s = Game.estado;
-    if (!s) { dragHandIndex = null; return; }
+    if (!s) { dragHandIndex = null; dragRivalHeroSlot = null; return; }
+    if (dragRivalHeroSlot != null) {
+      const playerHeroSlot = e.target.closest('.hero-slot[data-player="player"]');
+      if (playerHeroSlot && playerHeroSlot.dataset.slot !== undefined) {
+        const atacanteSlot = parseInt(playerHeroSlot.dataset.slot, 10);
+        const defensorSlot = dragRivalHeroSlot;
+        const result = Game.atacar('player', atacanteSlot, defensorSlot);
+        if (result.ok) {
+          if (modoPartida === 'online' && typeof Online !== 'undefined') Online.enviarAccion({ tipo: 'atacar', atacanteSlot, defensorSlot });
+          if (typeof Progresion !== 'undefined' && Progresion.registrarAccion) {
+            const atacante = s.player.heroes[atacanteSlot];
+            if (atacante && atacante.id) Progresion.registrarAccion('atacar', { heroeId: atacante.id });
+          }
+          if (typeof GameLog !== 'undefined' && result.atacanteNombre) {
+            if (result.bloqueado) GameLog.addBlockedDamage(result.atacanteJugador, result.atacanteNombre, result.defensorNombre, result.danoBloqueado);
+            else if (result.dano != null) GameLog.addDamage(result.atacanteJugador, result.atacanteNombre, result.defensorNombre, result.dano);
+          }
+          if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
+          if (result.efectoEspecial && typeof GameLog !== 'undefined') {
+            const efecto = result.efectoEspecial;
+            const jugador = result.atacanteJugador || 'player';
+            const nombreAtacante = result.atacanteNombre || 'Héroe';
+            if (efecto.tipo === 'paralizar') GameLog.addSpecialEffect(jugador, nombreAtacante, 'ha paralizado a ' + efecto.heroe + ' por ' + efecto.turnos + ' turno(s)');
+            else if (efecto.tipo === 'electrocutar') GameLog.addSpecialEffect(jugador, nombreAtacante, 'ha electrocutado a ' + efecto.heroe + ' por ' + efecto.turnos + ' turnos');
+            else if (efecto.tipo === 'quemar_carta') GameLog.addSpecialEffect(jugador, nombreAtacante, 'puede quemar una carta del rival');
+            else if (efecto.tipo === 'destruir_energia') GameLog.addSpecialEffect(jugador, nombreAtacante, 'ha destruido 1 energía de ' + efecto.heroe);
+            else if (efecto.tipo === 'robar_carta') GameLog.addSpecialEffect(jugador, nombreAtacante, 'ha robado ' + efecto.cantidad + ' carta(s) del mazo');
+            else if (efecto.tipo === 'fenix_revivir') GameLog.addSpecialEffect('rival', efecto.heroe, 'ha revivido y vuelto a la batalla');
+          }
+          var atacanteEl = document.querySelector('#player-zone .hero-slot[data-slot="' + atacanteSlot + '"]');
+          var defensorEl = document.querySelector('#rival-zone .hero-slot[data-slot="' + defensorSlot + '"]');
+          if (typeof Sounds !== 'undefined' && Sounds.atacar) Sounds.atacar();
+          UI.animarAtaque(atacanteEl, defensorEl, function () {
+            function rest() {
+              if (result.luciferQuemar && Game.estado.rival.mano.length > 0) {
+                UI.pedirQuemarCartaRival('rival', function (idx) {
+                  if (idx != null) Game.quemarCartaDe('rival', idx);
+                  cancelarModoInteractivo();
+                  UI.renderizarTablero();
+                  comprobarGanador();
+                });
+              } else {
+                cancelarModoInteractivo();
+                UI.renderizarTablero();
+                comprobarGanador();
+              }
+            }
+            if (result.defensorDestruido) {
+              UI.mostrarMensajeHeroeAsesinado('enemigo');
+              if (typeof GameLog !== 'undefined') GameLog.addSystem('<strong>' + (result.defensorNombre || 'Héroe enemigo') + '</strong> ha sido eliminado ⚔️');
+            }
+            if (result.atacanteDestruido) {
+              UI.mostrarMensajeHeroeAsesinado('aliado');
+              if (typeof GameLog !== 'undefined') GameLog.addSystem('<strong>' + (result.atacanteNombre || 'Héroe aliado') + '</strong> ha sido eliminado 💀');
+            }
+            if (result.curacion != null) UI.animarCuracion(defensorEl, rest);
+            else if (result.cartaRevelada) UI.animarTrampa(defensorEl, rest);
+            else if ((result.defensorDestruido || result.atacanteDestruido) && result.luciferQuemar) setTimeout(rest, 3200);
+            else rest();
+          });
+        }
+      }
+      dragRivalHeroSlot = null;
+      return;
+    }
+    if (dragHandIndex == null) return;
     const supportSlot = e.target.closest('.hidden-slot[data-player="player"]');
     if (supportSlot && supportSlot.dataset.slot !== undefined) {
       const slotIdx = parseInt(supportSlot.dataset.slot, 10);
@@ -377,7 +469,7 @@
         if (typeof Sounds !== 'undefined' && Sounds.ponerEnergia) Sounds.ponerEnergia();
         cancelarModoInteractivo();
         UI.renderizarTablero();
-      }
+      } else if (result.msg) alert(result.msg);
       dragHandIndex = null;
       return;
     }
@@ -446,7 +538,8 @@
         if (heroSlot && !heroSlot.classList.contains('vacio')) {
           var slotIdx = parseInt(heroSlot.dataset.slot, 10);
           var heroe = st.player.heroes[slotIdx];
-          if (heroe && heroe.vida > 0 && (!heroe.energiaStack || heroe.energiaStack.length < 3)) {
+          const maxE = (typeof Game !== 'undefined' && Game.maxEnergiaHeroe) ? Game.maxEnergiaHeroe(heroe) : 3;
+          if (heroe && heroe.vida > 0 && (!heroe.energiaStack || heroe.energiaStack.length < maxE)) {
             e.preventDefault();
             aplicarPonerEnergia(touchHandIndex, slotIdx);
           }
@@ -652,9 +745,11 @@
     if (!el) return;
     el.innerHTML = `
       <p><strong>Objetivo:</strong> Gana el jugador que deja al rival sin héroes en el mazo. Cuando el rival debe reemplazar un héroe destruido y no queda ninguno en el mazo, pierde.</p>
-      <p><strong>Mazo compartido:</strong> Ambos roban del mismo mazo. Al inicio cada uno roba 8 cartas y coloca 2 héroes en campo, 3 boca abajo y 3 en mano.</p>
-      <p><strong>Turno:</strong> Tienes 2 acciones por turno. Puedes: poner 1 carta de energía (boca abajo), atacar con un héroe (gastando su costo en energía), usar un efecto (curación, robo, etc.). Después de tus acciones, robas hasta tener 3 cartas en mano.</p>
-      <p><strong>Energía:</strong> Las cartas de energía se ponen boca abajo. Para atacar con un héroe debes tener al menos tantas cartas de energía como su costo (1, 2 o 3). Al atacar, se gastan esas cartas (van al descarte).</p>
+      <p><strong>Mazo compartido:</strong> Ambos roban del mismo mazo. Al inicio cada uno recibe 8 cartas y coloca 2 héroes en campo, 3 de soporte (1 energía, 1 héroe y 1 trampa en sus respectivos slots) y 3 en mano. La mano puede tener hasta 7 cartas.</p>
+      <p><strong>Turno:</strong> Tienes 2 acciones por turno. Puedes: poner energía sobre un héroe, poner una carta en la zona de soporte (en el slot que corresponda a su tipo), poner una carta boca abajo sobre un héroe, atacar con un héroe o usar un efecto (curación, robo, visión, antídoto). Al inicio de cada turno robas 1 carta; además, tras algunas acciones, robas hasta llenar tu mano (máximo 7 cartas).</p>
+      <p><strong>Zona de soporte:</strong> Tienes 3 slots visibles para ambos jugadores. Slot 1: solo 1 carta de energía (da energía a tus héroes). Slot 2: solo 1 carta de héroe (aumenta vida, defensa y ataque de tus 2 héroes). Slot 3: solo 1 carta de trampa/soporte (robo, curación, etc.). La curación en soporte no puede superar la vida máxima de cada héroe.</p>
+      <p><strong>Energía:</strong> Puedes poner cartas de energía desde la mano sobre un héroe o en el slot de energía de soporte. Un héroe no puede tener más energía que la que necesita para atacar (1, 2 o 3 según el héroe). Para atacar, debes tener al menos esa cantidad; al atacar, se gastan y van al descarte.</p>
+      <p><strong>Atacar:</strong> Puedes usar el botón «Atacar» y elegir héroe y objetivo, o arrastrar el héroe enemigo sobre tu héroe para que este lo ataque. También puedes atacar cartas de soporte del rival (cuesta 1 energía).</p>
       <p><strong>Héroes:</strong> Tienen ataque y vida. Si la vida llega a 0, el héroe se destruye y debe reemplazarse por otro de la mano o robando del mazo hasta encontrar uno.</p>
       <p><strong>Sin héroes en el mazo:</strong> Si al reemplazar un héroe no queda ninguno en el mazo, ese jugador pierde.</p>
     `;
@@ -860,19 +955,27 @@
   }
 
   /**
-   * Reparte automáticamente 8 cartas en 2 héroes, 3 soporte y 3 en mano (sin pantalla de configuración).
+   * Reparte automáticamente 8 cartas: 2 héroes, 3 soporte (1 energía, 1 héroe, 1 trampa) y 3 en mano.
    */
   function autoSetup(manoInicial) {
     if (typeof IA !== 'undefined' && IA.elegirSetup) return IA.elegirSetup(manoInicial);
-    const heroes = [], bocaAbajo = [], mano = [];
+    const heroes = [];
+    const bocaAbajo = [null, null, null];
+    const mano = [];
     const restantes = [...manoInicial];
     const esHeroe = c => c && c.tipo === 'heroe';
     const heroesDisponibles = restantes.filter(esHeroe);
     const noHeroes = restantes.filter(c => !esHeroe(c));
     for (let i = 0; i < 2 && i < heroesDisponibles.length; i++) heroes.push(heroesDisponibles[i]);
     const restantesTrasHeroes = [...noHeroes, ...heroesDisponibles.slice(2)];
-    for (let i = 0; i < 3 && i < restantesTrasHeroes.length; i++) bocaAbajo.push(restantesTrasHeroes[i]);
-    for (let i = 3; i < 6 && i < restantesTrasHeroes.length; i++) mano.push(restantesTrasHeroes[i]);
+    const rest = restantesTrasHeroes.slice();
+    const iE = rest.findIndex(c => c && c.tipo === 'energia');
+    if (iE >= 0) { bocaAbajo[0] = rest.splice(iE, 1)[0]; }
+    const iH = rest.findIndex(c => c && c.tipo === 'heroe');
+    if (iH >= 0) { bocaAbajo[1] = rest.splice(iH, 1)[0]; }
+    const iT = rest.findIndex(c => c && c.tipo === 'trampa');
+    if (iT >= 0) { bocaAbajo[2] = rest.splice(iT, 1)[0]; }
+    for (let i = 0; i < 3 && i < rest.length; i++) mano.push(rest[i]);
     return { heroes, bocaAbajo, mano };
   }
 
@@ -1029,7 +1132,7 @@
     const j = s[actor];
     const tieneEnergia = j.mano.some(c => c.tipo === 'energia') || (j.bocaAbajo || []).some(c => c && c.tipo === 'energia');
     if (!tieneEnergia) return;
-    if (!j.heroes.some(h => h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < 3 : true))) return;
+    if (!j.heroes.some(h => h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < (Game.maxEnergiaHeroe ? Game.maxEnergiaHeroe(h) : 3) : true))) return;
     if (s.turnoActual !== 'player') {
       modoPonerEnergiaModal();
       return;
@@ -1061,7 +1164,7 @@
     (j.bocaAbajo || []).forEach((c, i) => { if (c && c.tipo === 'energia') opciones.push({ tipo: 'soporte', indiceSoporte: i, nombre: `Energía soporte (${i + 1})`, emoji: '⚡' }); });
     const heroesConEspacio = [];
     j.heroes.forEach((h, i) => {
-      if (h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < 3 : true))
+      if (h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < (Game.maxEnergiaHeroe ? Game.maxEnergiaHeroe(h) : 3) : true))
         heroesConEspacio.push({ heroeSlot: i, nombre: h.nombre, emoji: UI.getEmojiCarta(h) });
     });
     if (opciones.length === 0) return;
@@ -1343,6 +1446,18 @@
     }
     if (accion.tipo === 'boca_abajo') {
       const result = Game.ponerBocaAbajoEnHeroe('rival', accion.indiceBocaAbajo, accion.heroeSlot);
+      if (result.ok) {
+        UI.renderizarTablero();
+        setTimeout(turnoIA, 500);
+      } else {
+        Game.terminarTurno();
+        UI.renderizarTablero();
+        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
+      }
+      return;
+    }
+    if (accion.tipo === 'soporte') {
+      const result = Game.ponerEnSoporteDesdeMano('rival', accion.indiceMano, accion.slotSoporte);
       if (result.ok) {
         UI.renderizarTablero();
         setTimeout(turnoIA, 500);

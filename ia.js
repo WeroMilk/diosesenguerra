@@ -7,27 +7,28 @@ const IA = {
   dificultad: 'facil',
 
   /**
-   * Elige setup para el rival: 2 héroes, 3 boca abajo, 3 en mano.
+   * Elige setup para el rival: 2 héroes, 3 soporte (1 energía, 1 héroe, 1 trampa), 3 en mano.
    */
   elegirSetup(manoInicial) {
     const heroes = [];
-    const bocaAbajo = [];
+    const bocaAbajo = [null, null, null];
     const mano = [];
     const restantes = [...manoInicial];
 
-    // Ordenar por preferencia: héroes fuertes primero, luego energía/trampas
     const esHeroe = c => c.tipo === 'heroe';
-    const esEnergia = c => c.tipo === 'energia';
     const poderHeroe = h => (h.ataque || 0) + (h.vidaMax || h.vida || 0) + (h.costoEnergia || 0);
-
     const heroesDisponibles = restantes.filter(esHeroe).sort((a, b) => poderHeroe(b) - poderHeroe(a));
     const noHeroes = restantes.filter(c => !esHeroe(c));
 
     for (let i = 0; i < 2 && i < heroesDisponibles.length; i++) heroes.push(heroesDisponibles[i]);
-    const restantesTrasHeroes = [...noHeroes, ...heroesDisponibles.slice(2)];
-
-    for (let i = 0; i < 3 && i < restantesTrasHeroes.length; i++) bocaAbajo.push(restantesTrasHeroes[i]);
-    for (let i = 3; i < 6 && i < restantesTrasHeroes.length; i++) mano.push(restantesTrasHeroes[i]);
+    const rest = [...noHeroes, ...heroesDisponibles.slice(2)];
+    const iE = rest.findIndex(c => c && c.tipo === 'energia');
+    if (iE >= 0) { bocaAbajo[0] = rest.splice(iE, 1)[0]; }
+    const iH = rest.findIndex(c => c && c.tipo === 'heroe');
+    if (iH >= 0) { bocaAbajo[1] = rest.splice(iH, 1)[0]; }
+    const iT = rest.findIndex(c => c && c.tipo === 'trampa');
+    if (iT >= 0) { bocaAbajo[2] = rest.splice(iT, 1)[0]; }
+    for (let i = 0; i < 3 && i < rest.length; i++) mano.push(rest[i]);
 
     return { heroes, bocaAbajo, mano };
   },
@@ -173,7 +174,8 @@ const IA = {
       if (atacante.vida <= 0) rival.heroes[accion.atacanteSlot] = null;
     } else if (accion.tipo === 'energia') {
       const heroe = s.rival.heroes[accion.heroeSlot];
-      if (heroe && heroe.energiaStack && heroe.energiaStack.length < 3) {
+      const maxE = (typeof Game !== 'undefined' && Game.maxEnergiaHeroe) ? Game.maxEnergiaHeroe(heroe) : 3;
+      if (heroe && heroe.energiaStack && heroe.energiaStack.length < maxE) {
         const c = s.rival.mano[accion.indiceMano];
         s.rival.mano.splice(accion.indiceMano, 1);
         heroe.energiaStack.push(c);

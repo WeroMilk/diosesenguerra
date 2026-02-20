@@ -6,6 +6,9 @@
 /** Ruta base para ilustraciones de cartas (opcional). Si no hay imagen, se usa emoji. */
 const CARD_ART_BASE = 'assets/cartas/';
 
+/** Ruta base para iconos pixel-art estilo Pokémon/Tibia (GIF o PNG). */
+const CARD_ICON_BASE = 'assets/icons/';
+
 /**
  * Devuelve la URL de la ilustración de una carta, o null si no tiene.
  */
@@ -15,7 +18,19 @@ function getCardArtUrl(carta) {
 }
 
 /**
- * Devuelve el emoji de una carta (para mostrar en UI).
+ * Devuelve la URL del icono pixel-art de una carta (GIF/PNG). Si no hay icono, null.
+ * Nombres por id base: medusa, thor, energia, curacion, etc.
+ * Busca .gif; puedes usar .png cambiando la extensión aquí.
+ */
+function getCardIconUrl(carta) {
+  if (!carta) return null;
+  const baseId = carta.tipo === 'energia' ? 'energia' : (carta.id || '').split('_')[0];
+  if (!baseId) return null;
+  return CARD_ICON_BASE + baseId + '.gif';
+}
+
+/**
+ * Devuelve el emoji de una carta (fallback cuando no hay icono).
  */
 function getEmojiCarta(carta) {
   if (!carta) return '';
@@ -23,6 +38,16 @@ function getEmojiCarta(carta) {
   if (carta.tipo === 'energia') return '⚡';
   if (carta.tipo === 'trampa') return '🃏';
   return '⚔️';
+}
+
+/**
+ * HTML para mostrar icono de carta: imagen pixel-art con fallback a emoji si la imagen falla.
+ */
+function getCardIconHtml(carta) {
+  const emoji = getEmojiCarta(carta);
+  const url = getCardIconUrl(carta);
+  if (!url) return `<span class="card-emoji">${emoji}</span>`;
+  return `<span class="card-icon-wrap"><img src="${url}" class="card-icon pixel-art" alt="" onerror="this.onerror=null;this.style.display='none';var n=this.nextElementSibling;if(n)n.style.display='inline';" onload="var n=this.nextElementSibling;if(n)n.style.display='none';"><span class="card-emoji card-emoji-fallback" style="display:none">${emoji}</span></span>`;
 }
 
 /**
@@ -258,7 +283,7 @@ const UI = {
     if (sourceZone === 'mano') {
       card.className = 'card-mini setup-card-draggable';
       if (getCardArtUrl(carta)) card.classList.add('has-art');
-      const emoji = getEmojiCarta(carta);
+      const iconHtml = getCardIconHtml(carta);
       const artUrl = getCardArtUrl(carta);
       const artImg = artUrl ? `<img class="card-art" src="${artUrl}" alt="" onerror="this.classList.add('card-art-failed')">` : '';
       const tipoLabel = carta.tipo === 'heroe' ? 'Héroe' : carta.tipo === 'trampa' ? 'Trampa' : 'Energía';
@@ -267,7 +292,7 @@ const UI = {
       card.innerHTML = `
         ${artImg}
         <div class="card-text">
-          <span class="card-emoji">${emoji}</span>
+          ${iconHtml}
           <span class="card-nombre">${carta.nombre || 'Energía'}</span>
           <span class="card-tipo">${tipoLabel}</span>
           ${carta.tipo === 'heroe' ? `<span class="card-stats">⚔${carta.ataque} ❤${carta.vidaMax || carta.vida}</span><span class="card-costo">⚡${carta.costoEnergia ?? 0}</span>` : ''}
@@ -277,13 +302,13 @@ const UI = {
       // Para otras zonas, usar estilo de setup-card-item
       card.className = 'setup-card-item setup-card-draggable';
       if (getCardArtUrl(carta)) card.classList.add('has-art');
-      const emoji = getEmojiCarta(carta);
+      const iconHtml = getCardIconHtml(carta);
       const artUrl = getCardArtUrl(carta);
       const artImg = artUrl ? `<img class="card-art" src="${artUrl}" alt="" onerror="this.classList.add('card-art-failed')">` : '';
       card.innerHTML = `
         ${artImg}
         <div class="card-text">
-          <span class="card-emoji">${emoji}</span>
+          ${iconHtml}
           <span class="nombre">${carta.nombre || 'Energía'}</span>
           <span class="tipo">${carta.tipo === 'heroe' ? 'Héroe' : carta.tipo === 'trampa' ? 'Trampa' : 'Energía'}</span>
           ${carta.tipo === 'heroe' ? `<span class="stats">⚔${carta.ataque} ❤${carta.vidaMax || carta.vida}</span><span class="costo-energia">⚡${carta.costoEnergia ?? 0}</span>` : ''}
@@ -652,7 +677,8 @@ const UI = {
       if (modo.indiceMano !== undefined) {
         playerZone.querySelectorAll('.hero-slot').forEach((slot, i) => {
           const h = s.player.heroes[i];
-          if (h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < 3 : true))
+          const maxE = (typeof Game !== 'undefined' && Game.maxEnergiaHeroe) ? Game.maxEnergiaHeroe(h) : 3;
+          if (h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < maxE : true))
             slot.classList.add('objetivo-energia');
         });
       }
@@ -739,13 +765,13 @@ const UI = {
       faceDownWrap.appendChild(mini);
     }
     stackContainer.appendChild(faceDownWrap);
-    // Mini-cartas de energía
+    // Mini-cartas de energía (icono pixel-art o emoji)
     const energyStackWrap = document.createElement('div');
     energyStackWrap.className = 'hero-energy-stack';
     for (let i = stack.length - 1; i >= 0; i--) {
       const miniCard = document.createElement('div');
       miniCard.className = 'energy-mini-card';
-      miniCard.textContent = getEmojiCarta(stack[i]);
+      miniCard.innerHTML = getCardIconHtml(stack[i]);
       energyStackWrap.appendChild(miniCard);
     }
     stackContainer.appendChild(energyStackWrap);
@@ -753,13 +779,13 @@ const UI = {
     div.className = 'card-hero';
     if (getCardArtUrl(heroe)) div.classList.add('has-art');
     const paralizado = (heroe.paralizado || 0) > 0 || (heroe.electrocutado || 0) > 0;
-    const emojiHeroe = getEmojiCarta(heroe);
+    const heroIconHtml = getCardIconHtml(heroe);
     const heroArtUrl = getCardArtUrl(heroe);
     const heroArtImg = heroArtUrl ? `<img class="card-art" src="${heroArtUrl}" alt="" onerror="this.classList.add('card-art-failed')">` : '';
     div.innerHTML = `
       ${heroArtImg}
       <div class="card-text">
-        <span class="card-emoji">${emojiHeroe}</span>
+        ${heroIconHtml}
         <span class="nombre">${heroe.nombre}</span>
         <span class="stats">
           <span class="ataque">⚔${heroe.ataque}</span>
@@ -771,6 +797,13 @@ const UI = {
     `;
     stackContainer.appendChild(div);
     slotEl.appendChild(stackContainer);
+    // Héroes rivales son arrastrables para atacar (arrastrar enemigo sobre nuestro héroe)
+    if (jugador === 'rival' && heroe && heroe.vida > 0) {
+      slotEl.draggable = true;
+      slotEl.title = (slotEl.title || '') + ' Arrastra sobre tu héroe para atacar.';
+    } else {
+      slotEl.draggable = false;
+    }
   },
 
   rellenarHiddenSlot(slotEl, carta, oculto = false) {
@@ -779,7 +812,7 @@ const UI = {
     if (!carta) return;
     // Las 3 cartas de soporte siempre boca arriba (visibles para ambos jugadores)
     slotEl.classList.add('soporte-face-up');
-    const emoji = getEmojiCarta(carta);
+    const iconHtmlSoporte = getCardIconHtml(carta);
     const div = document.createElement('div');
     div.className = 'card-mini card-soporte';
     if (getCardArtUrl(carta)) div.classList.add('has-art');
@@ -790,7 +823,7 @@ const UI = {
     div.innerHTML = `
       ${soporteArtImg}
       <div class="card-text">
-        <span class="card-emoji">${emoji}</span>
+        ${iconHtmlSoporte}
         <span class="nombre">${carta.nombre || 'Energía'}</span>
         <span class="tipo">${carta.tipo === 'heroe' ? 'Héroe' : carta.tipo === 'trampa' ? 'Trampa' : 'Energía'}</span>
         ${carta.tipo === 'heroe' ? `<span class="stats">⚔${carta.ataque} ❤${carta.vidaMax || carta.vida}</span><span class="costo-energia">⚡${carta.costoEnergia ?? 0}</span>` : ''}
@@ -804,7 +837,7 @@ const UI = {
     slotEl.dataset.index = index;
     slotEl.draggable = false;
     if (!carta) return;
-    const emoji = getEmojiCarta(carta);
+    const iconHtmlMano = getCardIconHtml(carta);
     const div = document.createElement('div');
     div.className = 'card-mini';
     if (getCardArtUrl(carta)) div.classList.add('has-art');
@@ -816,7 +849,7 @@ const UI = {
     div.innerHTML = `
       ${manoArtImg}
       <div class="card-text">
-        <span class="card-emoji">${emoji}</span>
+        ${iconHtmlMano}
         <span class="nombre">${carta.nombre || 'Energía'}</span>
         <span class="tipo">${tipoLabel}</span>
         ${carta.tipo === 'heroe' ? `<span class="stats">⚔${carta.ataque} ❤${carta.vidaMax || carta.vida}</span><span class="costo-energia">⚡${carta.costoEnergia ?? 0}</span>` : ''}
@@ -853,11 +886,12 @@ const UI = {
     const j = turno === 'player' ? s.player : s.rival;
     const acciones = s.accionesRestantes;
     const modo = this.estadoModoInteractivo;
-    const algunHeroeConEspacio = (j.heroes || []).some(h => h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < 3 : true));
+    const algunHeroeConEspacio = (j.heroes || []).some(h => h && h.vida > 0 && (h.energiaStack ? h.energiaStack.length < (typeof Game !== 'undefined' && Game.maxEnergiaHeroe ? Game.maxEnergiaHeroe(h) : 3) : true));
     const algunHeroeConEspacioBocaAbajo = (j.heroes || []).some(h => h && h.vida > 0 && (h.faceDownStack ? h.faceDownStack.length < 3 : true));
     const tieneBocaAbajo = (j.bocaAbajo || []).some(c => c != null);
     const tieneEspacioSoporte = (j.bocaAbajo || []).some(c => !c);
-    const tieneCartaParaSoporte = j.mano.some(c => c && c.tipo !== 'heroe');
+    const tiposSlot = (typeof Game !== 'undefined' && Game.TIPO_SLOT_SOPORTE) ? Game.TIPO_SLOT_SOPORTE : ['energia', 'heroe', 'trampa'];
+    const tieneCartaParaSoporte = (j.bocaAbajo || []).some((slotCard, idx) => !slotCard && j.mano.some(c => c && c.tipo === tiposSlot[idx]));
     const tieneEnergia = j.mano.some(c => c.tipo === 'energia') || (j.bocaAbajo || []).some(c => c && c.tipo === 'energia');
     const puedePonerEnergia = esHumano && acciones > 0 && tieneEnergia && algunHeroeConEspacio;
     const puedePonerSoporte = esHumano && acciones > 0 && tieneEspacioSoporte && tieneCartaParaSoporte;
@@ -888,8 +922,12 @@ const UI = {
       const btn = document.createElement('button');
       btn.className = 'card-option';
       const text = typeof opt === 'object' ? (opt.nombre || opt.text || JSON.stringify(opt)) : opt;
-      const emojiOpt = (typeof opt === 'object' && opt.emoji) ? opt.emoji + ' ' : '';
-      btn.textContent = emojiOpt + text;
+      if (typeof opt === 'object' && opt.iconUrl) {
+        btn.innerHTML = `<img src="${opt.iconUrl}" class="card-icon pixel-art selection-btn-icon" alt="" onerror="this.style.display='none'"> <span>${text}</span>`;
+      } else {
+        const emojiOpt = (typeof opt === 'object' && opt.emoji) ? opt.emoji + ' ' : '';
+        btn.textContent = emojiOpt + text;
+      }
       btn.addEventListener('click', () => {
         modal.classList.add('hidden');
         if (callback) callback(typeof opt === 'object' ? opt : i);
@@ -907,7 +945,7 @@ const UI = {
     const s = Game.estado;
     const mano = s[oponente || 'rival'].mano;
     if (mano.length === 0) { callback(null); return; }
-    const opciones = mano.map((c, i) => ({ index: i, nombre: c.nombre || c.tipo, tipo: c.tipo, emoji: getEmojiCarta(c) }));
+    const opciones = mano.map((c, i) => ({ index: i, nombre: c.nombre || c.tipo, tipo: c.tipo, emoji: getEmojiCarta(c), iconUrl: getCardIconUrl(c) }));
     this.mostrarModalSeleccion('Lucifer: elige una carta del oponente para quemar', opciones, (opt) => {
       if (opt && opt.index != null) callback(opt.index);
       else callback(null);
@@ -918,7 +956,7 @@ const UI = {
     const s = Game.estado;
     const oponente = actor === 'player' ? 'rival' : 'player';
     const objetivos = [];
-    s[oponente].heroes.forEach((h, i) => { if (h) objetivos.push({ slot: i, nombre: h.nombre, emoji: getEmojiCarta(h) }); });
+    s[oponente].heroes.forEach((h, i) => { if (h) objetivos.push({ slot: i, nombre: h.nombre, emoji: getEmojiCarta(h), iconUrl: getCardIconUrl(h) }); });
     if (objetivos.length === 0) { callback(null); return; }
     this.mostrarModalSeleccion('Elige a qué héroe atacar', objetivos, (opt) => {
       if (opt && opt.slot != null) callback(opt.slot);
@@ -930,7 +968,7 @@ const UI = {
     const s = Game.estado;
     const atacantes = [];
     s[actor].heroes.forEach((h, i) => {
-      if (h && Game.puedeAtacar(actor, i)) atacantes.push({ slot: i, nombre: h.nombre, emoji: getEmojiCarta(h) });
+      if (h && Game.puedeAtacar(actor, i)) atacantes.push({ slot: i, nombre: h.nombre, emoji: getEmojiCarta(h), iconUrl: getCardIconUrl(h) });
     });
     if (atacantes.length === 0) { callback(null); return; }
     this.mostrarModalSeleccion('Elige con qué héroe atacar', atacantes, (opt) => {

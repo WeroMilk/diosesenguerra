@@ -7,6 +7,14 @@ const MAX_MANO = 7;
 /** Tras este número de turnos, si no hay ganador, se desempata por vida total en mesa (para que la partida siempre pueda terminar). */
 const MAX_TURNOS_PARTIDA = 200;
 
+/** Máxima energía que puede tener un héroe: la que necesita para atacar (no más). */
+function maxEnergiaHeroe(heroe) {
+  return Math.max(1, heroe.costoEnergia || 0);
+}
+
+/** Tipo de carta permitido en cada slot de soporte: 0 = energía, 1 = héroe, 2 = trampa. */
+const TIPO_SLOT_SOPORTE = ['energia', 'heroe', 'trampa'];
+
 const Game = {
   estado: null,
 
@@ -224,7 +232,8 @@ const Game = {
     const heroe = j.heroes[heroeSlot];
     if (!heroe || heroe.vida <= 0) return { ok: false, msg: 'Héroe inválido' };
     if (!heroe.energiaStack) heroe.energiaStack = [];
-    if (heroe.energiaStack.length >= 3) return { ok: false, msg: 'Este héroe ya tiene 3 energías' };
+    const maxE = maxEnergiaHeroe(heroe);
+    if (heroe.energiaStack.length >= maxE) return { ok: false, msg: 'Este héroe ya tiene la energía máxima para atacar' };
 
     j.mano.splice(indiceMano, 1);
     heroe.energiaStack.push(carta);
@@ -265,7 +274,8 @@ const Game = {
     const heroe = j.heroes[heroeSlot];
     if (!heroe || heroe.vida <= 0) return { ok: false, msg: 'Héroe inválido' };
     if (!heroe.energiaStack) heroe.energiaStack = [];
-    if (heroe.energiaStack.length >= 3) return { ok: false, msg: 'Este héroe ya tiene 3 energías' };
+    const maxE = maxEnergiaHeroe(heroe);
+    if (heroe.energiaStack.length >= maxE) return { ok: false, msg: 'Este héroe ya tiene la energía máxima para atacar' };
 
     j.bocaAbajo[indiceSoporte] = null;
     heroe.energiaStack.push(carta);
@@ -274,34 +284,38 @@ const Game = {
   },
 
   /**
-   * NUEVO: Pone una carta de la mano en una casilla de soporte (bocaAbajo[0..2]).
-   * Permite cualquier tipo de carta; cuesta 1 acción.
-   * Las cartas de soporte afectan a los 2 héroes de enfrente.
+   * Pone una carta de la mano en una casilla de soporte (bocaAbajo[0..2]).
+   * Slot 0 = solo energía, Slot 1 = solo héroe, Slot 2 = solo trampa (robo, curación, etc.).
+   * Cuesta 1 acción. Las cartas de soporte afectan a los 2 héroes.
    */
-  ponerEnSoporteDesdeMano(jugador, indiceMano, slotSoporte) {
+  ponerEnSoporteDesdeManoV2(jugador, indiceMano, slotSoporte) {
     const s = this.estado;
     if (s.fase !== 'acciones' || s.accionesRestantes < 1) return { ok: false, msg: 'Sin acciones' };
     const j = jugador === 'player' ? s.player : s.rival;
     const carta = (j.mano || [])[indiceMano];
     if (!carta) return { ok: false, msg: 'Carta inválida' };
     if (!j.bocaAbajo || slotSoporte < 0 || slotSoporte >= j.bocaAbajo.length) return { ok: false, msg: 'Slot inválido' };
+    const tipoRequerido = TIPO_SLOT_SOPORTE[slotSoporte];
+    if (carta.tipo !== tipoRequerido) return { ok: false, msg: `En ese slot solo se puede poner una carta de ${tipoRequerido === 'heroe' ? 'héroe' : tipoRequerido === 'trampa' ? 'soporte (trampa)' : 'energía'}` };
     if (j.bocaAbajo[slotSoporte]) return { ok: false, msg: 'Ese espacio de soporte ya está ocupado' };
 
     j.mano[indiceMano] = null;
     j.bocaAbajo[slotSoporte] = carta;
     s.accionesRestantes--;
-    
-    // Aplicar efectos de soporte inmediatamente
     this.aplicarEfectosSoporte(jugador);
-    
     return { ok: true };
   },
 
+  /** Pone una carta en soporte; delega en validación por tipo de slot (0=energía, 1=héroe, 2=trampa). */
+  ponerEnSoporteDesdeMano(jugador, indiceMano, slotSoporte) {
+    return this.ponerEnSoporteDesdeManoV2(jugador, indiceMano, slotSoporte);
+  },
+
   /**
-   * Aplica los efectos de las cartas de soporte a los 2 héroes de enfrente.
-   * - Energía: los héroes ganan energía (máx 3 por héroe)
-   * - Héroe: suma vida y defensa a los héroes
-   * - Curación: cura a los héroes una vez y desaparece
+   * Aplica los efectos de las cartas de soporte a los 2 héroes.
+   * - Slot energía: da 1 energía virtual por héroe (máx = costoEnergia del héroe).
+   * - Slot héroe: suma vida, defensa y ataque a los 2 héroes.
+   * - Slot trampa curación: cura sin superar vida máxima; robo: se activa al usar.
    */
   aplicarEfectosSoporte(jugador) {
     const s = this.estado;
@@ -311,59 +325,53 @@ const Game = {
     // Resetear efectos de soporte antes de recalcular
     j.heroes.forEach((heroe) => {
       if (!heroe) return;
-      // Limpiar energías virtuales de soporte
       if (heroe.energiaStack) {
         heroe.energiaStack = heroe.energiaStack.filter(e => !e.virtual || e.soporteIndex === undefined);
       }
-      // Resetear vidaMax y defensa extra (se recalcularán)
       if (heroe._vidaMaxOriginal === undefined) {
         heroe._vidaMaxOriginal = heroe.vidaMax || heroe.vida;
       }
       heroe.vidaMax = heroe._vidaMaxOriginal;
       heroe.defensaExtra = 0;
+      heroe.ataqueExtra = 0;
     });
     
-    // Aplicar efectos a cada héroe
-    j.heroes.forEach((heroe, heroeIndex) => {
+    j.heroes.forEach((heroe) => {
       if (!heroe || heroe.vida <= 0) return;
       
       bocaAbajo.forEach((cartaSoporte, soporteIndex) => {
         if (!cartaSoporte) return;
         
         if (cartaSoporte.tipo === 'energia') {
-          // Energía: agregar energía al héroe (máx 3)
           if (!heroe.energiaStack) heroe.energiaStack = [];
-          // Contar solo energías reales (no virtuales de soporte)
+          const maxE = maxEnergiaHeroe(heroe);
           const energiaReal = heroe.energiaStack.filter(e => !e.virtual || e.soporteIndex === undefined).length;
-          if (energiaReal < 3) {
-            // Verificar si ya tiene esta energía virtual de este slot de soporte
+          if (energiaReal < maxE) {
             const yaTieneEsta = heroe.energiaStack.some(e => e.virtual && e.soporteIndex === soporteIndex);
             if (!yaTieneEsta) {
               heroe.energiaStack.push({ id: 'energia_soporte_' + soporteIndex, tipo: 'energia', virtual: true, soporteIndex });
             }
           }
         } else if (cartaSoporte.tipo === 'heroe') {
-          // Héroe: suma vida y defensa (ataque como defensa)
           const vidaExtra = cartaSoporte.vidaMax || cartaSoporte.vida || 0;
           const defensaExtra = cartaSoporte.ataque || 0;
+          const ataqueExtra = cartaSoporte.ataque || 0;
           const vidaMaxBase = heroe._vidaMaxOriginal || heroe.vidaMax || heroe.vida;
           heroe.vidaMax = vidaMaxBase + vidaExtra;
           heroe.vida = Math.min(heroe.vida, heroe.vidaMax);
-          // La defensa se aplica reduciendo el daño recibido (se maneja en atacar)
           heroe.defensaExtra = (heroe.defensaExtra || 0) + defensaExtra;
+          heroe.ataqueExtra = (heroe.ataqueExtra || 0) + ataqueExtra;
         } else if (cartaSoporte.tipo === 'trampa' && (cartaSoporte.efectoId === 'curacion' || cartaSoporte.id === 'curacion')) {
-          // Curación: cura una vez y desaparece
           if (!cartaSoporte._curacionUsada) {
             const curacion = 2;
-            heroe.vida = Math.min(heroe.vidaMax || heroe.vida, heroe.vida + curacion);
-            // Marcar para eliminar después de aplicar
+            const vidaMax = heroe.vidaMax || heroe.vida;
+            heroe.vida = Math.min(vidaMax, heroe.vida + curacion);
             cartaSoporte._curacionUsada = true;
           }
         }
       });
     });
     
-    // Eliminar cartas de curación que ya se usaron
     bocaAbajo.forEach((carta, index) => {
       if (carta && carta._curacionUsada) {
         s.descarte.push(carta);
@@ -508,7 +516,7 @@ const Game = {
       this.robarHastaMano(defensorJugador);
       const resultado = { ok: true, cartaRevelada: faceDown, atacanteDestruido: heroeAtacante.vida <= 0 };
       if (faceDown.efectoId === 'escudo') {
-        let danoQueSería = heroeAtacante.ataque || 0;
+        let danoQueSería = (heroeAtacante.ataque || 0) + (heroeAtacante.ataqueExtra || 0);
         if (heroeAtacante.habilidadId === 'odin_vision' && heroeDefensor.atributo && ['humano', 'mortal'].includes(heroeDefensor.atributo)) danoQueSería += 2;
         if (heroeDefensor.habilidadId === 'cleopatra_defensa') danoQueSería = Math.max(0, danoQueSería - 1);
         resultado.bloqueado = true;
@@ -530,7 +538,7 @@ const Game = {
       return resultado;
     }
 
-    let dano = heroeAtacante.ataque || 0;
+    let dano = (heroeAtacante.ataque || 0) + (heroeAtacante.ataqueExtra || 0);
     // Bonus Odin vs heroína/mortal
     if (heroeAtacante.habilidadId === 'odin_vision' && heroeDefensor.atributo && ['humano', 'mortal'].includes(heroeDefensor.atributo)) dano += 2;
     // Cleopatra: atacante pierde 1 de ataque este turno
@@ -623,7 +631,7 @@ const Game = {
         // El héroe que mató recupera 1 energía (máx 3)
         if (heroeAtacante.vida > 0 && atacante.heroes[atacanteSlot] === heroeAtacante) {
           if (!heroeAtacante.energiaStack) heroeAtacante.energiaStack = [];
-          if (heroeAtacante.energiaStack.length < 3) {
+          if (heroeAtacante.energiaStack.length < maxEnergiaHeroe(heroeAtacante)) {
             heroeAtacante.energiaStack.push({ id: 'energia_kill', tipo: 'energia', virtual: true });
           }
         }
@@ -808,7 +816,7 @@ const Game = {
       if (j.mano[m].tipo === 'energia') {
         for (let h = 0; h < j.heroes.length; h++) {
           const heroe = j.heroes[h];
-          if (heroe && heroe.vida > 0 && (heroe.energiaStack ? heroe.energiaStack.length < 3 : true))
+          if (heroe && heroe.vida > 0 && (heroe.energiaStack ? heroe.energiaStack.length < maxEnergiaHeroe(heroe) : true))
             acciones.push({ tipo: 'energia', indiceMano: m, heroeSlot: h });
         }
       }
@@ -859,6 +867,16 @@ const Game = {
         }
       }
     }
+    // Poner carta en soporte (slot 0=energía, 1=héroe, 2=trampa)
+    for (let slot = 0; slot < (j.bocaAbajo || []).length; slot++) {
+      if (j.bocaAbajo[slot]) continue;
+      const tipoRequerido = TIPO_SLOT_SOPORTE[slot];
+      for (let m = 0; m < j.mano.length; m++) {
+        if (j.mano[m] && j.mano[m].tipo === tipoRequerido) {
+          acciones.push({ tipo: 'soporte', indiceMano: m, slotSoporte: slot });
+        }
+      }
+    }
     // Usar efecto desde mano (curación, visión, robo, antídoto)
     const efectosDesdeMano = ['curacion', 'vision', 'robo', 'antidoto'];
     for (let m = 0; m < j.mano.length; m++) {
@@ -888,3 +906,7 @@ const Game = {
     return true;
   }
 };
+if (typeof Game !== 'undefined') {
+  Game.maxEnergiaHeroe = maxEnergiaHeroe;
+  Game.TIPO_SLOT_SOPORTE = TIPO_SLOT_SOPORTE;
+}

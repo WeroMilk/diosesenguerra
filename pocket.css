@@ -1,0 +1,97 @@
+/**
+ * Dioses en Guerra - Estilo tipo Pokémon TCG Pocket
+ * Visual streamlined, cartas redondeadas, feedback rápido, móvil-first
+ */
+
+/* ==========================================
+   CARTAS ESTILO POCKET: MÁS REDONDAS Y CLARAS
+   ========================================== */
+
+.hero-slot,
+.hand-slot,
+.hidden-slot,
+.deck-pile,
+.discard-pile {
+  border-radius: 14px !important;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.card-hero,
+.card-mini,
+.card-soporte {
+  border-radius: 12px !important;
+}
+
+/* Botones de acción más tipo app */
+.action-btn {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease !important;
+}
+
+.action-btn:active:not(:disabled) {
+  transform: scale(0.97) !important;
+}
+
+/* ==========================================
+   MÓVIL: TARGETS TÁCTILES MÁS GRANDES (LATAM)
+   ========================================== */
+
+@media (max-width: 768px) {
+  .action-btn {
+    min-height: 44px !important;
+    padding: 0.6rem 0.9rem !important;
+  }
+
+  .hand-slot,
+  .hero-slot,
+  .hidden-slot {
+    min-height: 44px !important;
+  }
+
+  .menu-btn,
+  .diff-btn,
+  .mode-card {
+    min-height: 44px !important;
+  }
+}
+
+/* ==========================================
+   FEEDBACK RÁPIDO (LO QUE PIDE LATAM)
+   ========================================== */
+
+.log-msg {
+  animation: logFadeIn 0.25s ease-out;
+}
+
+@keyframes logFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Victoria/derrota más impactantes */
+#gameover-modal .modal-content {
+  border-radius: 20px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(232, 197, 71, 0.3) !important;
+}
+
+#gameover-modal h2 {
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Efectos de partículas y animaciones un poco más cortos en móvil */
+@media (max-width: 768px) {
+  .hand-slot:hover,
+  .hand-slot.seleccionada,
+  .hero-slot:hover {
+    transition-duration: 0.15s !important;
+  }
+}

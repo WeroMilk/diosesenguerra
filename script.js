@@ -148,6 +148,7 @@
         btnVsIa.addEventListener('click', function () {
           var cont = document.getElementById('dificultad-container');
           if (cont) cont.classList.remove('hidden');
+          document.body.classList.add('dificultad-abierta');
           document.querySelectorAll('.diff-btn').forEach(function (b) {
             b.classList.toggle('selected', b.dataset.diff === dificultadPartida);
           });
@@ -165,12 +166,14 @@
           dificultadPartida = btn.dataset.diff || 'facil';
           var dc = document.getElementById('dificultad-container');
           if (dc) dc.classList.add('hidden');
+          document.body.classList.remove('dificultad-abierta');
           empezarPartida('ia', dificultadPartida);
         });
       });
       safeOn('btn-cancelar-dificultad', 'click', function () {
         var c = document.getElementById('dificultad-container');
         if (c) c.classList.add('hidden');
+        document.body.classList.remove('dificultad-abierta');
       });
       safeOn('btn-vs-local', 'click', function () { empezarPartida('local'); });
       safeOn('btn-campania', 'click', mostrarCampania);
@@ -203,6 +206,74 @@
       safeOn('btn-pasar', 'click', pasarTurno);
       safeOn('btn-end-turn', 'click', terminarTurno);
       safeOn('btn-rendirse', 'click', rendirse);
+      
+      // Modal de configuración
+      safeOn('btn-settings', 'click', function() {
+        var modal = document.getElementById('settings-modal');
+        if (modal) modal.classList.remove('hidden');
+      });
+      safeOn('btn-settings-close', 'click', function() {
+        var modal = document.getElementById('settings-modal');
+        if (modal) modal.classList.add('hidden');
+      });
+      
+      // Configuraciones de audio
+      var settingSound = document.getElementById('setting-sound');
+      var settingSfx = document.getElementById('setting-sfx');
+      var settingMusic = document.getElementById('setting-music');
+      var settingVolume = document.getElementById('setting-volume');
+      var volumeValue = document.getElementById('volume-value');
+      var settingAnimations = document.getElementById('setting-animations');
+      var settingParticles = document.getElementById('setting-particles');
+      
+      if (settingSound) {
+        settingSound.addEventListener('change', function() {
+          var enabled = this.checked;
+          if (typeof Sounds !== 'undefined') {
+            Sounds.setMusicaEnabled(enabled);
+            Sounds.setEffectsEnabled(enabled);
+          }
+          if (settingSfx) settingSfx.checked = enabled;
+          if (settingMusic) settingMusic.checked = enabled;
+        });
+      }
+      
+      if (settingSfx) {
+        settingSfx.addEventListener('change', function() {
+          if (typeof Sounds !== 'undefined') Sounds.setEffectsEnabled(this.checked);
+        });
+      }
+      
+      if (settingMusic) {
+        settingMusic.addEventListener('change', function() {
+          if (typeof Sounds !== 'undefined') Sounds.setMusicaEnabled(this.checked);
+        });
+      }
+      
+      if (settingVolume && volumeValue) {
+        settingVolume.addEventListener('input', function() {
+          var vol = parseInt(this.value, 10);
+          volumeValue.textContent = vol + '%';
+          if (typeof Sounds !== 'undefined' && Sounds.setVolume) {
+            Sounds.setVolume(vol / 100);
+          }
+        });
+      }
+      
+      if (settingAnimations) {
+        settingAnimations.addEventListener('change', function() {
+          window.animationsEnabled = this.checked;
+        });
+      }
+      
+      if (settingParticles) {
+        settingParticles.addEventListener('change', function() {
+          if (typeof ParticleSystem !== 'undefined') {
+            ParticleSystem.enabled = this.checked;
+          }
+        });
+      }
+      
       safeOn('selection-cancel', 'click', function () { var m = document.getElementById('selection-modal'); if (m) m.classList.add('hidden'); });
       safeOn('btn-volver-menu', 'click', function () { if (typeof Sounds !== 'undefined' && Sounds.musica) Sounds.musica(false); volverMenuTrasPartida(); });
       safeOn('btn-volver-setup', 'click', function () { 
@@ -425,7 +496,18 @@
           }
           var atacanteEl = document.querySelector('#player-zone .hero-slot[data-slot="' + atacanteSlot + '"]');
           var defensorEl = document.querySelector('#rival-zone .hero-slot[data-slot="' + defensorSlot + '"]');
-          if (typeof Sounds !== 'undefined' && Sounds.atacar) Sounds.atacar();
+          // Reproducir sonido de ataque (crítico si es mucho daño)
+          if (typeof Sounds !== 'undefined') {
+            if (result.dano >= 5 && Sounds.atacarCritico) Sounds.atacarCritico();
+            else if (Sounds.atacar) Sounds.atacar();
+          }
+          // Animar habilidad especial si aplica
+          if (result.efectoEspecial && typeof UI !== 'undefined' && UI.animarHabilidadEspecial) {
+            const tipoEfecto = result.efectoEspecial.tipo;
+            if (tipoEfecto === 'paralizar' || tipoEfecto === 'electrocutar' || tipoEfecto === 'fenix_revivir') {
+              UI.animarHabilidadEspecial(atacanteEl, tipoEfecto);
+            }
+          }
           UI.animarAtaque(atacanteEl, defensorEl, function () {
             function rest() {
               if (result.luciferQuemar && Game.estado.rival.mano.length > 0) {
@@ -442,12 +524,14 @@
               }
             }
             if (result.defensorDestruido) {
-              UI.mostrarMensajeHeroeAsesinado('enemigo');
-              if (typeof GameLog !== 'undefined') GameLog.addSystem('<strong>' + (result.defensorNombre || 'Héroe enemigo') + '</strong> ha sido eliminado ⚔️');
+              UI.mostrarMensajeHeroeAsesinado('enemigo', defensorEl);
+              if (typeof Sounds !== 'undefined' && Sounds.heroeDestruido) Sounds.heroeDestruido();
+              if (typeof GameLog !== 'undefined') GameLog.addSystem('<strong>' + (GameLog._hero ? GameLog._hero(result.defensorNombre, 'rival') : (result.defensorNombre || 'Héroe enemigo')) + '</strong> ha sido eliminado ⚔️');
             }
             if (result.atacanteDestruido) {
-              UI.mostrarMensajeHeroeAsesinado('aliado');
-              if (typeof GameLog !== 'undefined') GameLog.addSystem('<strong>' + (result.atacanteNombre || 'Héroe aliado') + '</strong> ha sido eliminado 💀');
+              UI.mostrarMensajeHeroeAsesinado('aliado', atacanteEl);
+              if (typeof Sounds !== 'undefined' && Sounds.heroeDestruido) Sounds.heroeDestruido();
+              if (typeof GameLog !== 'undefined') GameLog.addSystem('<strong>' + (GameLog._hero ? GameLog._hero(result.atacanteNombre, 'player') : (result.atacanteNombre || 'Héroe aliado')) + '</strong> ha sido eliminado 💀');
             }
             if (result.curacion != null) UI.animarCuracion(defensorEl, rest);
             else if (result.cartaRevelada) UI.animarTrampa(defensorEl, rest);
@@ -610,7 +694,7 @@
             Online.enviarAccion({ tipo: 'atacar_soporte', atacanteSlot: modoInteractivo.atacanteSlot, slotSoporte });
           }
           if (typeof GameLog !== 'undefined' && result.cartaNombre) {
-            GameLog.addSystem(`${result.atacanteNombre || 'Héroe'} ha destruido la carta de soporte <strong>${result.cartaNombre}</strong> ⚔️`);
+            GameLog.addSystem(`${GameLog._hero ? GameLog._hero(result.atacanteNombre, 'player') : (result.atacanteNombre || 'Héroe')} ha destruido la carta de soporte <strong>${result.cartaNombre}</strong> ⚔️`);
           }
           cancelarModoInteractivo();
           UI.renderizarTablero();
@@ -717,13 +801,13 @@
             if (result.defensorDestruido) {
               UI.mostrarMensajeHeroeAsesinado('enemigo');
               if (typeof GameLog !== 'undefined') {
-                GameLog.addSystem(`<strong>${result.defensorNombre || 'Héroe enemigo'}</strong> ha sido eliminado ⚔️`);
+                GameLog.addSystem(`<strong>${GameLog._hero ? GameLog._hero(result.defensorNombre, 'rival') : (result.defensorNombre || 'Héroe enemigo')}</strong> ha sido eliminado ⚔️`);
               }
             }
             if (result.atacanteDestruido) {
               UI.mostrarMensajeHeroeAsesinado('aliado');
               if (typeof GameLog !== 'undefined') {
-                GameLog.addSystem(`<strong>${result.atacanteNombre || 'Héroe aliado'}</strong> ha sido eliminado 💀`);
+                GameLog.addSystem(`<strong>${GameLog._hero ? GameLog._hero(result.atacanteNombre, 'player') : (result.atacanteNombre || 'Héroe aliado')}</strong> ha sido eliminado 💀`);
               }
             }
             if (result.curacion != null) UI.animarCuracion(defensorEl, rest);
@@ -808,8 +892,8 @@
       const nLogros = Array.isArray(logros) ? logros.filter(l => l && l.desbloqueado).length : 0;
       const elLogros = document.getElementById('menu-logros-count');
       const elRend = document.getElementById('menu-rendiciones-count');
-      if (elLogros) elLogros.textContent = 'Logros: ' + nLogros + '/' + (logros.length || 0);
-      if (elRend) elRend.textContent = 'Rendiciones: ' + (Progresion.estado && Progresion.estado.rendiciones || 0);
+      if (elLogros) elLogros.textContent = nLogros + '/' + (logros.length || 0);
+      if (elRend) elRend.textContent = (Progresion.estado && Progresion.estado.rendiciones || 0);
     } catch (e) { console.warn('actualizarMenuStats:', e); }
   }
 
@@ -896,7 +980,14 @@
           UI.mostrarPantalla('game-screen');
           if (typeof GameLog !== 'undefined') GameLog.clear();
           if (typeof Sounds !== 'undefined' && Sounds.musica) Sounds.musica(true);
+          // Iniciar efectos de ambiente premium
+          if (typeof UI !== 'undefined' && UI.iniciarEfectosAmbiente) UI.iniciarEfectosAmbiente();
+          if (typeof ParticleSystem !== 'undefined') ParticleSystem.startAmbientParticles();
           UI.renderizarTablero();
+          // Mostrar indicador de turno
+          if (typeof UI !== 'undefined' && UI.mostrarIndicadorTurno) {
+            setTimeout(() => UI.mostrarIndicadorTurno(true), 500);
+          }
         }
       };
       Online.onEstado = () => {
@@ -1015,7 +1106,14 @@
       UI.mostrarPantalla('game-screen');
       if (typeof GameLog !== 'undefined') GameLog.clear();
       if (typeof Sounds !== 'undefined' && Sounds.musica) Sounds.musica(true);
+      // Iniciar efectos de ambiente premium
+      if (typeof UI !== 'undefined' && UI.iniciarEfectosAmbiente) UI.iniciarEfectosAmbiente();
+      if (typeof ParticleSystem !== 'undefined') ParticleSystem.startAmbientParticles();
       UI.renderizarTablero();
+      // Mostrar indicador de turno premium
+      if (typeof UI !== 'undefined' && UI.mostrarIndicadorTurno) {
+        setTimeout(() => UI.mostrarIndicadorTurno(true), 500);
+      }
       return;
     }
 
@@ -1263,13 +1361,13 @@
         if (result.defensorDestruido && actor === 'player') {
           UI.mostrarMensajeHeroeAsesinado('enemigo');
           if (typeof GameLog !== 'undefined') {
-            GameLog.addSystem(`<strong>${result.defensorNombre || 'Héroe enemigo'}</strong> ha sido eliminado ⚔️`);
+            GameLog.addSystem(`<strong>${GameLog._hero ? GameLog._hero(result.defensorNombre, 'rival') : (result.defensorNombre || 'Héroe enemigo')}</strong> ha sido eliminado ⚔️`);
           }
         }
         if (result.atacanteDestruido && actor === 'player') {
           UI.mostrarMensajeHeroeAsesinado('aliado');
           if (typeof GameLog !== 'undefined') {
-            GameLog.addSystem(`<strong>${result.atacanteNombre || 'Héroe aliado'}</strong> ha sido eliminado 💀`);
+            GameLog.addSystem(`<strong>${GameLog._hero ? GameLog._hero(result.atacanteNombre, 'player') : (result.atacanteNombre || 'Héroe aliado')}</strong> ha sido eliminado 💀`);
           }
         }
         const atacanteZone = actor === 'player' ? 'player-zone' : 'rival-zone';
@@ -1336,7 +1434,13 @@
     comprobarGanador();
     const stateNow = Game.estado;
     if (stateNow.ganador) return;
-    if (stateNow.turnoActual === 'rival' && esModoVsIA()) setTimeout(turnoIA, 800);
+    
+    // Sonido de inicio de turno rival (sin popup intrusivo)
+    if (stateNow.turnoActual === 'rival') {
+      if (typeof Sounds !== 'undefined' && Sounds.inicioTurnoRival) Sounds.inicioTurnoRival();
+    }
+    
+    if (stateNow.turnoActual === 'rival' && esModoVsIA()) setTimeout(turnoIA, 1800);
   }
 
   function rendirse() {
@@ -1356,7 +1460,23 @@
     const s = Game.estado;
     if (s.ganador) {
       ultimoGanadorPartida = s.ganador;
-      if (s.ganador === 'player') Sounds.ganar(); else Sounds.perder();
+      
+      // Efectos de victoria/derrota premium
+      if (s.ganador === 'player') {
+        if (typeof Sounds !== 'undefined' && Sounds.ganar) Sounds.ganar();
+        if (typeof UI !== 'undefined' && UI.animarVictoria) UI.animarVictoria();
+        if (typeof ParticleSystem !== 'undefined') {
+          ParticleSystem.victoryBurst(window.innerWidth / 2, window.innerHeight / 2);
+        }
+      } else {
+        if (typeof Sounds !== 'undefined' && Sounds.perder) Sounds.perder();
+        if (typeof UI !== 'undefined' && UI.animarDerrota) UI.animarDerrota();
+      }
+      
+      // Detener efectos de ambiente
+      if (typeof UI !== 'undefined' && UI.detenerEfectosAmbiente) UI.detenerEfectosAmbiente();
+      if (typeof ParticleSystem !== 'undefined') ParticleSystem.stopAmbientParticles();
+      
       UI.mostrarGameOver(s.ganador, false);
       const msgEl = document.getElementById('gameover-message');
       if (msgEl) {
@@ -1392,191 +1512,316 @@
     }
   }
 
+  // Delays variables para simular pensamiento humano
+  function delayHumano(base = 600, variacion = 400) {
+    return base + Math.random() * variacion;
+  }
+
+  // Resaltar elemento como si la IA lo estuviera considerando
+  function resaltarElementoIA(elemento, tipo = 'seleccion') {
+    if (!elemento) return;
+    elemento.classList.add('ia-considerando');
+    if (tipo === 'objetivo') elemento.classList.add('ia-objetivo');
+  }
+
+  // Quitar resaltado
+  function quitarResaltadoIA() {
+    document.querySelectorAll('.ia-considerando, .ia-objetivo').forEach(el => {
+      el.classList.remove('ia-considerando', 'ia-objetivo');
+    });
+  }
+
+  // Obtener elemento de carta en mano del rival
+  function getCartaManoRival(indice) {
+    return document.querySelector(`#rival-zone .hand-slot[data-index="${indice}"]`);
+  }
+
+  // Obtener elemento de héroe
+  function getHeroeElemento(jugador, slot) {
+    const zona = jugador === 'rival' ? '#rival-zone' : '#player-zone';
+    return document.querySelector(`${zona} .hero-slot[data-slot="${slot}"]`);
+  }
+
+  // Obtener elemento de soporte
+  function getSoporteElemento(jugador, slot) {
+    const zona = jugador === 'rival' ? '#rival-zone' : '#player-zone';
+    return document.querySelector(`${zona} .hidden-slot[data-slot="${slot}"]`);
+  }
+
   function turnoIA() {
     const s = Game.estado;
     if (!s || s.turnoActual !== 'rival' || s.ganador) return;
+    
+    quitarResaltadoIA();
+    
     if (s.turnoPerdido && s.turnoPerdido.rival > 0) {
       Game.terminarTurno();
       UI.renderizarTablero();
       comprobarGanador();
-      if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
+      if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(800, 400));
       return;
     }
+    
     const accion = IA.jugar();
     if (!accion) {
       Game.terminarTurno();
       UI.renderizarTablero();
       comprobarGanador();
-      if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
+      if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
       return;
     }
+    
     if (accion.tipo === 'terminar_turno') {
-      Game.terminarTurno();
-      UI.renderizarTablero();
-      comprobarGanador();
-      if (Game.estado && !Game.estado.ganador && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      return;
-    }
-    if (accion.tipo === 'energia') {
-      const heroeSlot = accion.heroeSlot != null ? accion.heroeSlot : 0;
-      const result = Game.ponerEnergia('rival', accion.indiceMano, heroeSlot);
-      if (result.ok) {
-        UI.renderizarTablero();
-        setTimeout(turnoIA, 500);
-      } else {
+      // Pequeña pausa antes de terminar turno
+      setTimeout(() => {
         Game.terminarTurno();
         UI.renderizarTablero();
         comprobarGanador();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      }
+        if (Game.estado && !Game.estado.ganador && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(800, 400));
+      }, delayHumano(400, 200));
       return;
     }
-    if (accion.tipo === 'energia_soporte') {
+    
+    if (accion.tipo === 'energia') {
       const heroeSlot = accion.heroeSlot != null ? accion.heroeSlot : 0;
-      const result = Game.ponerEnergiaDesdeSoporte('rival', accion.indiceSoporte, heroeSlot);
-      if (result.ok) {
-        UI.renderizarTablero();
-        setTimeout(turnoIA, 500);
-      } else {
-        Game.terminarTurno();
-        UI.renderizarTablero();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      }
-      return;
-    }
-    if (accion.tipo === 'boca_abajo') {
-      const result = Game.ponerBocaAbajoEnHeroe('rival', accion.indiceBocaAbajo, accion.heroeSlot);
-      if (result.ok) {
-        UI.renderizarTablero();
-        setTimeout(turnoIA, 500);
-      } else {
-        Game.terminarTurno();
-        UI.renderizarTablero();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      }
-      return;
-    }
-    if (accion.tipo === 'soporte') {
-      const result = Game.ponerEnSoporteDesdeMano('rival', accion.indiceMano, accion.slotSoporte);
-      if (result.ok) {
-        UI.renderizarTablero();
-        setTimeout(turnoIA, 500);
-      } else {
-        Game.terminarTurno();
-        UI.renderizarTablero();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      }
-      return;
-    }
-    if (accion.tipo === 'atacar') {
-      const result = Game.atacar('rival', accion.atacanteSlot, accion.defensorSlot);
-      if (!result.ok) {
-        Game.terminarTurno();
-        UI.renderizarTablero();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-        return;
-      }
-      if (typeof GameLog !== 'undefined' && result.atacanteNombre) {
-        if (result.bloqueado) GameLog.addBlockedDamage(result.atacanteJugador, result.atacanteNombre, result.defensorNombre, result.danoBloqueado);
-        else if (result.dano != null) GameLog.addDamage(result.atacanteJugador, result.atacanteNombre, result.defensorNombre, result.dano);
-      }
-      // Agregar efectos especiales al log
-      if (result.efectoEspecial && typeof GameLog !== 'undefined') {
-        const efecto = result.efectoEspecial;
-        const jugador = result.atacanteJugador || 'rival';
-        const nombreAtacante = result.atacanteNombre || 'Héroe';
-        if (efecto.tipo === 'paralizar') {
-          GameLog.addSpecialEffect(jugador, nombreAtacante, `ha paralizado a ${efecto.heroe} por ${efecto.turnos} turno(s)`);
-        } else if (efecto.tipo === 'electrocutar') {
-          GameLog.addSpecialEffect(jugador, nombreAtacante, `ha electrocutado a ${efecto.heroe} por ${efecto.turnos} turnos`);
-        } else if (efecto.tipo === 'quemar_carta') {
-          GameLog.addSpecialEffect(jugador, nombreAtacante, 'puede quemar una carta del rival');
-        } else if (efecto.tipo === 'destruir_energia') {
-          GameLog.addSpecialEffect(jugador, nombreAtacante, `ha destruido 1 energía de ${efecto.heroe}`);
-        } else if (efecto.tipo === 'robar_carta') {
-          GameLog.addSpecialEffect(jugador, nombreAtacante, `ha robado ${efecto.cantidad} carta(s) del mazo`);
-        } else if (efecto.tipo === 'fenix_revivir') {
-          GameLog.addSpecialEffect('player', efecto.heroe, 'ha revivido y vuelto a la batalla');
-        }
-      }
-      // Mostrar mensaje de héroe asesinado
-      if (result.defensorDestruido) {
-        UI.mostrarMensajeHeroeAsesinado('aliado');
-        if (typeof GameLog !== 'undefined') {
-          GameLog.addSystem(`<strong>${result.defensorNombre || 'Héroe aliado'}</strong> ha sido eliminado 💀`);
-        }
-      }
-      if (result.atacanteDestruido) {
-        UI.mostrarMensajeHeroeAsesinado('enemigo');
-        if (typeof GameLog !== 'undefined') {
-          GameLog.addSystem(`<strong>${result.atacanteNombre || 'Héroe enemigo'}</strong> ha sido eliminado ⚔️`);
-        }
-      }
-      if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
-      const atacanteEl = document.querySelector('#rival-zone .hero-slot[data-slot="' + accion.atacanteSlot + '"]');
-      const defensorEl = document.querySelector('#player-zone .hero-slot[data-slot="' + accion.defensorSlot + '"]');
-      if (typeof Sounds !== 'undefined' && Sounds.atacar) Sounds.atacar();
-      UI.animarAtaque(atacanteEl, defensorEl, () => {
-        function rest() {
-          var aliadoMuerto = result.defensorDestruido;
-          var enemigoMuerto = result.atacanteDestruido;
-          function continuar() {
-            if (result.luciferQuemar && Game.estado.player.mano.length > 0) {
-              const idx = Math.floor(Math.random() * Game.estado.player.mano.length);
-              Game.quemarCartaDe('player', idx);
-            }
+      const cartaEl = getCartaManoRival(accion.indiceMano);
+      const heroeEl = getHeroeElemento('rival', heroeSlot);
+      
+      // Fase 1: Resaltar carta en mano
+      resaltarElementoIA(cartaEl, 'seleccion');
+      setTimeout(() => {
+        // Fase 2: Resaltar héroe objetivo
+        resaltarElementoIA(heroeEl, 'objetivo');
+        setTimeout(() => {
+          // Fase 3: Ejecutar acción
+          quitarResaltadoIA();
+          const result = Game.ponerEnergia('rival', accion.indiceMano, heroeSlot);
+          if (result.ok) {
+            UI.renderizarTablero();
+            setTimeout(turnoIA, delayHumano(700, 400));
+          } else {
+            Game.terminarTurno();
             UI.renderizarTablero();
             comprobarGanador();
-            if (Game.estado.ganador) return;
-            setTimeout(turnoIA, 700);
+            if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
           }
-          if (aliadoMuerto) {
-            UI.mostrarMensajeHeroeAsesinado('aliado');
-            setTimeout(continuar, 1500);
-          } else if (enemigoMuerto) {
-            UI.mostrarMensajeHeroeAsesinado('enemigo');
-            setTimeout(continuar, 1500);
+        }, delayHumano(500, 300));
+      }, delayHumano(600, 300));
+      return;
+    }
+    
+    if (accion.tipo === 'energia_soporte') {
+      const heroeSlot = accion.heroeSlot != null ? accion.heroeSlot : 0;
+      const soporteEl = getSoporteElemento('rival', accion.indiceSoporte);
+      const heroeEl = getHeroeElemento('rival', heroeSlot);
+      
+      resaltarElementoIA(soporteEl, 'seleccion');
+      setTimeout(() => {
+        resaltarElementoIA(heroeEl, 'objetivo');
+        setTimeout(() => {
+          quitarResaltadoIA();
+          const result = Game.ponerEnergiaDesdeSoporte('rival', accion.indiceSoporte, heroeSlot);
+          if (result.ok) {
+            UI.renderizarTablero();
+            setTimeout(turnoIA, delayHumano(700, 400));
           } else {
-            continuar();
+            Game.terminarTurno();
+            UI.renderizarTablero();
+            if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
           }
+        }, delayHumano(500, 300));
+      }, delayHumano(600, 300));
+      return;
+    }
+    
+    if (accion.tipo === 'boca_abajo') {
+      const heroeEl = getHeroeElemento('rival', accion.heroeSlot);
+      
+      resaltarElementoIA(heroeEl, 'seleccion');
+      setTimeout(() => {
+        quitarResaltadoIA();
+        const result = Game.ponerBocaAbajoEnHeroe('rival', accion.indiceBocaAbajo, accion.heroeSlot);
+        if (result.ok) {
+          UI.renderizarTablero();
+          setTimeout(turnoIA, delayHumano(700, 400));
+        } else {
+          Game.terminarTurno();
+          UI.renderizarTablero();
+          if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
         }
-        if (result.curacion != null) UI.animarCuracion(defensorEl, rest);
-        else if (result.cartaRevelada) UI.animarTrampa(defensorEl, rest);
-        else rest();
-      });
+      }, delayHumano(600, 300));
       return;
     }
+    
+    if (accion.tipo === 'soporte') {
+      const cartaEl = getCartaManoRival(accion.indiceMano);
+      const soporteEl = getSoporteElemento('rival', accion.slotSoporte);
+      
+      resaltarElementoIA(cartaEl, 'seleccion');
+      setTimeout(() => {
+        resaltarElementoIA(soporteEl, 'objetivo');
+        setTimeout(() => {
+          quitarResaltadoIA();
+          const result = Game.ponerEnSoporteDesdeMano('rival', accion.indiceMano, accion.slotSoporte);
+          if (result.ok) {
+            UI.renderizarTablero();
+            setTimeout(turnoIA, delayHumano(700, 400));
+          } else {
+            Game.terminarTurno();
+            UI.renderizarTablero();
+            if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
+          }
+        }, delayHumano(500, 300));
+      }, delayHumano(600, 300));
+      return;
+    }
+    
+    if (accion.tipo === 'atacar') {
+      const atacanteEl = getHeroeElemento('rival', accion.atacanteSlot);
+      const defensorEl = getHeroeElemento('player', accion.defensorSlot);
+      
+      // Fase 1: Resaltar atacante (la IA "piensa" en quién atacará)
+      resaltarElementoIA(atacanteEl, 'seleccion');
+      setTimeout(() => {
+        // Fase 2: Resaltar objetivo (la IA "selecciona" a quién atacar)
+        resaltarElementoIA(defensorEl, 'objetivo');
+        setTimeout(() => {
+          // Fase 3: Ejecutar ataque
+          quitarResaltadoIA();
+          
+          const result = Game.atacar('rival', accion.atacanteSlot, accion.defensorSlot);
+          if (!result.ok) {
+            Game.terminarTurno();
+            UI.renderizarTablero();
+            if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
+            return;
+          }
+          
+          if (typeof GameLog !== 'undefined' && result.atacanteNombre) {
+            if (result.bloqueado) GameLog.addBlockedDamage(result.atacanteJugador, result.atacanteNombre, result.defensorNombre, result.danoBloqueado);
+            else if (result.dano != null) GameLog.addDamage(result.atacanteJugador, result.atacanteNombre, result.defensorNombre, result.dano);
+          }
+          
+          if (result.efectoEspecial && typeof GameLog !== 'undefined') {
+            const efecto = result.efectoEspecial;
+            const jugador = result.atacanteJugador || 'rival';
+            const nombreAtacante = result.atacanteNombre || 'Héroe';
+            if (efecto.tipo === 'paralizar') {
+              GameLog.addSpecialEffect(jugador, nombreAtacante, `ha paralizado a ${efecto.heroe} por ${efecto.turnos} turno(s)`);
+            } else if (efecto.tipo === 'electrocutar') {
+              GameLog.addSpecialEffect(jugador, nombreAtacante, `ha electrocutado a ${efecto.heroe} por ${efecto.turnos} turnos`);
+            } else if (efecto.tipo === 'quemar_carta') {
+              GameLog.addSpecialEffect(jugador, nombreAtacante, 'puede quemar una carta del rival');
+            } else if (efecto.tipo === 'destruir_energia') {
+              GameLog.addSpecialEffect(jugador, nombreAtacante, `ha destruido 1 energía de ${efecto.heroe}`);
+            } else if (efecto.tipo === 'robar_carta') {
+              GameLog.addSpecialEffect(jugador, nombreAtacante, `ha robado ${efecto.cantidad} carta(s) del mazo`);
+            } else if (efecto.tipo === 'fenix_revivir') {
+              GameLog.addSpecialEffect('player', efecto.heroe, 'ha revivido y vuelto a la batalla');
+            }
+          }
+          
+          if (result.defensorDestruido) {
+            UI.mostrarMensajeHeroeAsesinado('aliado');
+            if (typeof GameLog !== 'undefined') {
+              GameLog.addSystem(`<strong>${GameLog._hero ? GameLog._hero(result.defensorNombre, 'player') : (result.defensorNombre || 'Héroe aliado')}</strong> ha sido eliminado 💀`);
+            }
+          }
+          if (result.atacanteDestruido) {
+            UI.mostrarMensajeHeroeAsesinado('enemigo');
+            if (typeof GameLog !== 'undefined') {
+              GameLog.addSystem(`<strong>${GameLog._hero ? GameLog._hero(result.atacanteNombre, 'rival') : (result.atacanteNombre || 'Héroe enemigo')}</strong> ha sido eliminado ⚔️`);
+            }
+          }
+          if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
+          
+          if (typeof Sounds !== 'undefined' && Sounds.atacar) Sounds.atacar();
+          UI.animarAtaque(atacanteEl, defensorEl, () => {
+            function rest() {
+              var aliadoMuerto = result.defensorDestruido;
+              var enemigoMuerto = result.atacanteDestruido;
+              function continuar() {
+                if (result.luciferQuemar && Game.estado.player.mano.length > 0) {
+                  const idx = Math.floor(Math.random() * Game.estado.player.mano.length);
+                  Game.quemarCartaDe('player', idx);
+                }
+                UI.renderizarTablero();
+                comprobarGanador();
+                if (Game.estado.ganador) return;
+                setTimeout(turnoIA, delayHumano(900, 500));
+              }
+              if (aliadoMuerto) {
+                UI.mostrarMensajeHeroeAsesinado('aliado');
+                setTimeout(continuar, 1800);
+              } else if (enemigoMuerto) {
+                UI.mostrarMensajeHeroeAsesinado('enemigo');
+                setTimeout(continuar, 1800);
+              } else {
+                continuar();
+              }
+            }
+            if (result.curacion != null) UI.animarCuracion(defensorEl, rest);
+            else if (result.cartaRevelada) UI.animarTrampa(defensorEl, rest);
+            else rest();
+          });
+        }, delayHumano(700, 400));
+      }, delayHumano(800, 400));
+      return;
+    }
+    
     if (accion.tipo === 'activar_trampa') {
-      const parametros = accion.heroeSlot != null ? { heroeSlot: accion.heroeSlot } : {};
-      const result = Game.activarTrampa('rival', accion.slotBocaAbajo, parametros);
-      if (result.ok) {
-        if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
-        UI.renderizarTablero();
-        setTimeout(turnoIA, 500);
-      } else {
-        Game.terminarTurno();
-        UI.renderizarTablero();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      }
+      const soporteEl = getSoporteElemento('rival', accion.slotBocaAbajo);
+      const heroeEl = accion.heroeSlot != null ? getHeroeElemento('rival', accion.heroeSlot) : null;
+      
+      resaltarElementoIA(soporteEl, 'seleccion');
+      setTimeout(() => {
+        if (heroeEl) resaltarElementoIA(heroeEl, 'objetivo');
+        setTimeout(() => {
+          quitarResaltadoIA();
+          const parametros = accion.heroeSlot != null ? { heroeSlot: accion.heroeSlot } : {};
+          const result = Game.activarTrampa('rival', accion.slotBocaAbajo, parametros);
+          if (result.ok) {
+            if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
+            UI.renderizarTablero();
+            setTimeout(turnoIA, delayHumano(700, 400));
+          } else {
+            Game.terminarTurno();
+            UI.renderizarTablero();
+            if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
+          }
+        }, delayHumano(500, 300));
+      }, delayHumano(600, 300));
       return;
     }
+    
     if (accion.tipo === 'usar_efecto_mano') {
-      const parametros = accion.heroeSlot != null ? { heroeSlot: accion.heroeSlot } : {};
-      const result = Game.usarEfectoDesdeMano('rival', accion.indiceMano, parametros);
-      if (result.ok) {
-        if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
-        UI.renderizarTablero();
-        setTimeout(turnoIA, 500);
-      } else {
-        Game.terminarTurno();
-        UI.renderizarTablero();
-        if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
-      }
+      const cartaEl = getCartaManoRival(accion.indiceMano);
+      const heroeEl = accion.heroeSlot != null ? getHeroeElemento('rival', accion.heroeSlot) : null;
+      
+      resaltarElementoIA(cartaEl, 'seleccion');
+      setTimeout(() => {
+        if (heroeEl) resaltarElementoIA(heroeEl, 'objetivo');
+        setTimeout(() => {
+          quitarResaltadoIA();
+          const parametros = accion.heroeSlot != null ? { heroeSlot: accion.heroeSlot } : {};
+          const result = Game.usarEfectoDesdeMano('rival', accion.indiceMano, parametros);
+          if (result.ok) {
+            if (result.curacion != null && typeof GameLog !== 'undefined') GameLog.addHeal(result.jugadorCurado, result.heroeNombre, result.curacion);
+            UI.renderizarTablero();
+            setTimeout(turnoIA, delayHumano(700, 400));
+          } else {
+            Game.terminarTurno();
+            UI.renderizarTablero();
+            if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
+          }
+        }, delayHumano(500, 300));
+      }, delayHumano(600, 300));
       return;
     }
+    
     Game.terminarTurno();
     UI.renderizarTablero();
-    if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, 600);
+    if (Game.estado && Game.estado.turnoActual === 'rival') setTimeout(turnoIA, delayHumano(600, 300));
   }
 
   window.__menuInit = init;

@@ -72,6 +72,10 @@
     return ejecutarN(100);
   }
 
+  function ejecutar1000() {
+    return ejecutarN(1000);
+  }
+
   function ejecutarN(n) {
     let winsPlayer = 0, winsRival = 0, timeouts = 0, errores = 0;
     const inicio = Date.now();
@@ -99,5 +103,5 @@
   }
 
   const globalObj = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
-  globalObj.Simulacion = { ejecutar100, ejecutarN, jugarUnaPartida };
+  globalObj.Simulacion = { ejecutar100, ejecutar1000, ejecutarN, jugarUnaPartida };
 })();

@@ -6,6 +6,11 @@
   <title>Dioses en Guerra - Juego de Cartas Mitológicas</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23060508' width='32' height='32' rx='4'/><text x='16' y='23' font-size='20' font-weight='700' text-anchor='middle' fill='%23f0d85c' font-family='Georgia,serif'>D</text></svg>">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="effects.css">
+  <link rel="stylesheet" href="polish.css">
+  <link rel="stylesheet" href="menu.css">
+  <link rel="stylesheet" href="game-board.css">
+  <link rel="stylesheet" href="pocket.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
@@ -26,34 +31,136 @@
   <!-- Pantalla de menú principal -->
   <div id="menu-screen" class="screen">
     <div class="menu-background castle-bg"></div>
+    <!-- Partículas ambientales del menú -->
+    <div class="menu-particles"></div>
+    <!-- Rayos de luz divinos -->
+    <div class="menu-light-rays"></div>
+    
     <div class="menu-content">
-      <h1 class="game-title">Dioses en Guerra</h1>
-      <p class="game-subtitle">Juego de Cartas Mitológicas</p>
-      <div class="menu-stats" id="menu-stats">
-        <span id="menu-logros-count">Logros: 0/0</span>
-        <span id="menu-rendiciones-count">Rendiciones: 0</span>
+      <!-- Logo con efectos -->
+      <div class="menu-logo-container">
+        <div class="menu-logo-glow"></div>
+        <h1 class="game-title">
+          <span class="title-letter" style="--delay: 0">D</span><span class="title-letter" style="--delay: 1">I</span><span class="title-letter" style="--delay: 2">O</span><span class="title-letter" style="--delay: 3">S</span><span class="title-letter" style="--delay: 4">E</span><span class="title-letter" style="--delay: 5">S</span>
+          <span class="title-space"></span>
+          <span class="title-letter" style="--delay: 6">E</span><span class="title-letter" style="--delay: 7">N</span>
+          <span class="title-space"></span>
+          <span class="title-letter" style="--delay: 8">G</span><span class="title-letter" style="--delay: 9">U</span><span class="title-letter" style="--delay: 10">E</span><span class="title-letter" style="--delay: 11">R</span><span class="title-letter" style="--delay: 12">R</span><span class="title-letter" style="--delay: 13">A</span>
+        </h1>
+        <div class="menu-title-underline"></div>
+        <p class="game-subtitle">⚔️ JUEGO DE CARTAS MITOLÓGICAS ⚔️</p>
       </div>
-      <nav class="menu-options">
-        <button id="btn-vs-ia" class="menu-btn">Jugar vs IA</button>
-        <div id="dificultad-container" class="dificultad-container hidden">
-          <label for="select-mazo" class="mazo-label">Mazo:</label>
-          <select id="select-mazo" class="select-mazo" title="Mazo para la partida">
-            <option value="clasico">Clásico</option>
-          </select>
-          <button class="diff-btn" data-diff="facil">Fácil</button>
-          <button class="diff-btn" data-diff="intermedio">Intermedio</button>
-          <button class="diff-btn" data-diff="dificil">Difícil</button>
-          <button class="diff-btn" data-diff="jarcor">JARCOR</button>
-          <button type="button" id="btn-cancelar-dificultad" class="menu-btn secondary">Cancelar</button>
+
+      <!-- Stats con estilo de medallas -->
+      <div class="menu-stats-premium" id="menu-stats">
+        <div class="stat-medal">
+          <span class="stat-icon">🏆</span>
+          <span class="stat-value" id="menu-logros-count">0/8</span>
+          <span class="stat-label">LOGROS</span>
         </div>
-        <button id="btn-vs-local" class="menu-btn">1 vs 1 Local</button>
-        <button id="btn-torneo" class="menu-btn">Torneo</button>
-        <button id="btn-survival" class="menu-btn">Supervivencia</button>
-        <button id="btn-online" class="menu-btn">Jugar online</button>
-        <button id="btn-reglas" class="menu-btn secondary">Reglas</button>
-        <button id="btn-sonido" class="menu-btn secondary" title="Opciones de sonido">Sonido</button>
-        <button id="btn-logros" class="menu-btn secondary">Logros</button>
-      </nav>
+        <div class="stat-medal stat-battles">
+          <span class="stat-icon">⚔️</span>
+          <span class="stat-value">∞</span>
+          <span class="stat-label">BATALLAS</span>
+        </div>
+        <div class="stat-medal stat-surrenders">
+          <span class="stat-icon">🏳️</span>
+          <span class="stat-value" id="menu-rendiciones-count">0</span>
+          <span class="stat-label">RENDICIONES</span>
+        </div>
+      </div>
+
+      <!-- Botón principal GIGANTE -->
+      <div class="menu-main-action">
+        <button id="btn-vs-ia" class="menu-btn-hero">
+          <span class="btn-hero-icon">⚡</span>
+          <span class="btn-hero-text">
+            <span class="btn-hero-title">JUGAR</span>
+            <span class="btn-hero-subtitle">vs Inteligencia Artificial</span>
+          </span>
+          <span class="btn-hero-arrow">→</span>
+        </button>
+        
+        <!-- Selector de dificultad integrado -->
+        <div id="dificultad-container" class="dificultad-container hidden">
+          <div class="diff-header">
+            <span class="diff-title">⚔️ ELIGE TU DESTINO ⚔️</span>
+          </div>
+          <div class="diff-options">
+            <button class="diff-btn diff-easy" data-diff="facil">
+              <span class="diff-icon">🌱</span>
+              <span class="diff-name">Fácil</span>
+              <span class="diff-desc">Aprende</span>
+            </button>
+            <button class="diff-btn diff-medium" data-diff="intermedio">
+              <span class="diff-icon">⚔️</span>
+              <span class="diff-name">Medio</span>
+              <span class="diff-desc">Equilibrado</span>
+            </button>
+            <button class="diff-btn diff-hard" data-diff="dificil">
+              <span class="diff-icon">🔥</span>
+              <span class="diff-name">Difícil</span>
+              <span class="diff-desc">Expertos</span>
+            </button>
+            <button class="diff-btn diff-extreme" data-diff="jarcor">
+              <span class="diff-icon">💀</span>
+              <span class="diff-name">JARCOR</span>
+              <span class="diff-desc">Imposible</span>
+            </button>
+          </div>
+          <div class="diff-mazo">
+            <label for="select-mazo" class="mazo-label">📜 Mazo:</label>
+            <select id="select-mazo" class="select-mazo" title="Mazo para la partida">
+              <option value="clasico">Clásico</option>
+            </select>
+          </div>
+          <button type="button" id="btn-cancelar-dificultad" class="diff-cancel">✕ Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Modos de juego en hexágonos/cards -->
+      <div class="menu-modes">
+        <button id="btn-vs-local" class="mode-card">
+          <div class="mode-icon">👥</div>
+          <div class="mode-name">1 vs 1</div>
+          <div class="mode-desc">Local</div>
+        </button>
+        <button id="btn-torneo" class="mode-card">
+          <div class="mode-icon">🏆</div>
+          <div class="mode-name">Torneo</div>
+          <div class="mode-desc">8 Rivales</div>
+        </button>
+        <button id="btn-survival" class="mode-card">
+          <div class="mode-icon">💀</div>
+          <div class="mode-name">Supervivencia</div>
+          <div class="mode-desc">Sin fin</div>
+        </button>
+        <button id="btn-online" class="mode-card mode-online">
+          <div class="mode-icon">🌐</div>
+          <div class="mode-name">Online</div>
+          <div class="mode-desc">Multijugador</div>
+          <div class="mode-badge">BETA</div>
+        </button>
+      </div>
+
+      <!-- Opciones secundarias en barra inferior -->
+      <div class="menu-bottom-bar">
+        <button id="btn-reglas" class="menu-btn-icon" title="Reglas">
+          <span class="btn-icon">📖</span>
+          <span class="btn-label">Reglas</span>
+        </button>
+        <button id="btn-logros" class="menu-btn-icon" title="Logros">
+          <span class="btn-icon">🏅</span>
+          <span class="btn-label">Logros</span>
+        </button>
+        <button id="btn-sonido" class="menu-btn-icon" title="Sonido">
+          <span class="btn-icon">🔊</span>
+          <span class="btn-label">Sonido</span>
+        </button>
+      </div>
+
+      <!-- Versión del juego -->
+      <div class="menu-version">v1.0 • Made with ⚡</div>
     </div>
   </div>
 
@@ -152,7 +259,10 @@
       <div class="actions-counter actions-counter-center">
         <span id="actions-left">Movimientos: 2</span>
       </div>
-      <button type="button" id="btn-rendirse" class="btn-surrender" title="Rendirse">Rendirse</button>
+      <div class="header-buttons">
+        <button type="button" id="btn-settings" class="btn-settings" title="Configuración">⚙️</button>
+        <button type="button" id="btn-rendirse" class="btn-surrender" title="Rendirse">Rendirse</button>
+      </div>
     </div>
 
     <div class="board board-horizontal">
@@ -299,6 +409,79 @@
       </div>
     </div>
 
+    <!-- Modal de Configuración -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content settings-content">
+        <h2 class="settings-title">⚙️ Configuración</h2>
+        
+        <div class="settings-section">
+          <h3 class="settings-section-title">🔊 Audio</h3>
+          
+          <div class="setting-item">
+            <span class="setting-label">Sonido General</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-sound" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div class="setting-item">
+            <span class="setting-label">Efectos de Sonido</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-sfx" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div class="setting-item">
+            <span class="setting-label">Música de Fondo</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-music" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div class="setting-item">
+            <span class="setting-label">Volumen</span>
+            <input type="range" id="setting-volume" min="0" max="100" value="80" class="volume-slider">
+            <span class="volume-value" id="volume-value">80%</span>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h3 class="settings-section-title">🎮 Juego</h3>
+          
+          <div class="setting-item">
+            <span class="setting-label">Animaciones</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-animations" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div class="setting-item">
+            <span class="setting-label">Partículas</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-particles" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div class="setting-item">
+            <span class="setting-label">Vibración (móvil)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-vibration" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="settings-buttons">
+          <button type="button" id="btn-settings-close" class="menu-btn btn-settings-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal fin de partida -->
     <div id="gameover-modal" class="modal hidden">
       <div class="modal-content gameover-content">
@@ -317,6 +500,8 @@
   <script src="progresion.js"></script>
   <script src="online.js"></script>
   <script src="sounds.js"></script>
+  <script src="particles.js"></script>
+  <script src="animations.js"></script>
   <script src="ui.js"></script>
   <script src="script.js"></script>
   <script>

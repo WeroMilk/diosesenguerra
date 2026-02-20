@@ -1,0 +1,843 @@
+/**
+ * Dioses en Guerra - Tablero de Juego Premium
+ * Layout perfecto, todo visible en pantalla
+ */
+
+/* ==========================================
+   PANTALLA DE JUEGO - AJUSTES GLOBALES
+   ========================================== */
+
+#game-screen.active {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header más compacto: izquierda = turno, centro = movimientos, derecha = botones */
+.game-header {
+  padding: 0.4rem 1rem !important;
+  flex-shrink: 0;
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-header .turn-indicator {
+  justify-self: start !important;
+}
+
+.game-header .actions-counter-center {
+  justify-self: center !important;
+}
+
+.game-header .header-buttons {
+  justify-self: end !important;
+}
+
+.turn-indicator {
+  font-size: clamp(0.85rem, 1.5vw, 1rem) !important;
+}
+
+.actions-counter {
+  font-size: clamp(0.9rem, 1.6vw, 1.1rem) !important;
+  font-weight: 700;
+}
+
+.btn-surrender {
+  padding: 0.3rem 0.7rem !important;
+  font-size: 0.8rem !important;
+}
+
+/* ==========================================
+   TABLERO - LAYOUT OPTIMIZADO
+   ========================================== */
+
+.board-horizontal {
+  flex: 1;
+  min-height: 0 !important;
+  max-height: calc(100vh - 180px);
+  padding: 0.4rem !important;
+  gap: 0.4rem !important;
+  grid-template-columns: 1fr minmax(140px, 200px) 1fr !important;
+}
+
+/* ==========================================
+   ZONAS DE JUGADOR - MÁS COMPACTAS
+   ========================================== */
+
+.board-horizontal .player-zone,
+.board-horizontal #rival-zone {
+  overflow: visible !important;
+}
+
+.board-horizontal .player-zone {
+  padding: 0.3rem !important;
+  gap: 0.2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-horizontal .player-info {
+  margin-bottom: 0.1rem !important;
+}
+
+.board-horizontal .player-name {
+  font-size: 0.8rem !important;
+  font-weight: 700;
+}
+
+/* Labels más pequeños */
+.board-horizontal .hidden-row-label {
+  font-size: 0.55rem !important;
+  margin-bottom: 1px !important;
+  opacity: 0.7;
+}
+
+/* ==========================================
+   HÉROES - TAMAÑO OPTIMIZADO
+   ========================================== */
+
+.board-horizontal .heroes-row {
+  gap: 0.35rem !important;
+  margin: 0.15rem 0 !important;
+}
+
+.board-horizontal .hero-slot {
+  width: clamp(65px, 9vw, 90px) !important;
+  min-height: clamp(80px, 10vh, 105px) !important;
+  padding: 4px !important;
+}
+
+.board-horizontal .hero-slot .card-hero {
+  padding: 2px !important;
+}
+
+.board-horizontal .hero-slot .card-hero .nombre {
+  font-size: 0.6rem !important;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.board-horizontal .hero-slot .card-hero .stats {
+  font-size: 0.65rem !important;
+  gap: 0.25rem;
+}
+
+/* Energía en héroes */
+.board-horizontal .hero-slot .hero-energy-stack {
+  padding: 2px !important;
+  gap: 2px !important;
+  margin-bottom: 2px !important;
+}
+
+.board-horizontal .hero-slot .energy-mini-card {
+  width: 18px !important;
+  height: 24px !important;
+  font-size: 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.board-horizontal .hero-slot .energy-mini-card .card-icon-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.board-horizontal .hero-slot .energy-mini-card .card-icon,
+.board-horizontal .hero-slot .energy-mini-card .pixel-art {
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+/* ==========================================
+   SOPORTE - ALTURA SUFICIENTE PARA VER CARTAS COMPLETAS
+   ========================================== */
+
+.board-horizontal .hidden-row {
+  gap: 0.35rem !important;
+  margin: 0.15rem 0 !important;
+  align-items: stretch !important;
+  min-height: 0;
+}
+
+.board-horizontal .hidden-slot {
+  width: clamp(52px, 6.5vw, 65px) !important;
+  height: clamp(78px, 10vh, 95px) !important;
+  min-height: clamp(78px, 10vh, 95px) !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+}
+
+.board-horizontal .hidden-slot .card-mini,
+.board-horizontal .hidden-slot .card-soporte {
+  padding: 4px !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.board-horizontal .hidden-slot .card-mini .nombre,
+.board-horizontal .hidden-slot .card-soporte .nombre {
+  font-size: 0.6rem !important;
+  line-height: 1.2 !important;
+  -webkit-line-clamp: 3 !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  word-break: break-word !important;
+}
+
+.board-horizontal .hidden-slot .card-soporte .tipo,
+.board-horizontal .hidden-slot .card-mini .tipo {
+  font-size: 0.5rem !important;
+  line-height: 1.15 !important;
+  margin-top: 2px !important;
+}
+
+/* ==========================================
+   MANO - SCROLL HORIZONTAL SUAVE
+   ========================================== */
+
+.board-horizontal .hand-scroll-wrap {
+  flex: 1;
+  min-height: 0;
+  max-height: 85px;
+  overflow: visible !important;
+}
+
+/* Espacio extra para que cartas elevadas y efectos no se corten */
+.board-horizontal .hand-row-scroll {
+  padding: 18px 6px !important;
+  overflow-x: auto !important;
+  min-height: 0;
+}
+
+.board-horizontal .hand-row-scroll .hand-row {
+  overflow: visible !important;
+}
+
+.board-horizontal .hand-row {
+  gap: 0.25rem !important;
+  margin: 0.1rem 0 !important;
+  padding: 0.1rem 0 !important;
+  overflow: visible !important;
+}
+
+/* Slots con overflow visible para que cartas y efectos (brillo, sombra, escala) no se corten */
+.board-horizontal .hand-slot,
+.board-horizontal .hero-slot,
+.board-horizontal .hidden-slot {
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.board-horizontal .hand-slot:hover,
+.board-horizontal .hand-slot.seleccionada,
+.board-horizontal .hero-slot:hover,
+.board-horizontal .hero-slot.seleccionado,
+.board-horizontal .hidden-slot:hover {
+  z-index: 20;
+}
+
+.board-horizontal .hand-slot {
+  width: clamp(45px, 6vw, 58px) !important;
+  height: clamp(62px, 8vh, 75px) !important;
+  flex-shrink: 0;
+}
+
+.board-horizontal .hand-slot .card-mini {
+  padding: 2px !important;
+  overflow: hidden; /* solo el contenido interno de la carta; el slot deja ver bordes/sombra */
+}
+
+.board-horizontal .hand-slot .card-mini .nombre {
+  font-size: 0.55rem !important;
+  line-height: 1.1;
+}
+
+.board-horizontal .hand-slot .card-mini .tipo {
+  font-size: 0.45rem !important;
+}
+
+/* Botones de navegación de mano */
+.board-horizontal .hand-nav {
+  width: 20px !important;
+  height: 28px !important;
+  font-size: 0.8rem !important;
+}
+
+/* ==========================================
+   ZONA CENTRAL - MAZO Y ACCIONES
+   ========================================== */
+
+.board-horizontal .center-zone {
+  padding: 0.35rem !important;
+  gap: 0.3rem !important;
+  min-width: 130px !important;
+  justify-content: space-between !important;
+}
+
+/* Mazo y descarte */
+.board-horizontal .deck-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem !important;
+}
+
+.board-horizontal .deck-pile,
+.board-horizontal .discard-pile {
+  width: clamp(42px, 6vw, 55px) !important;
+  height: clamp(58px, 7.5vh, 72px) !important;
+  font-size: 0.8rem !important;
+}
+
+.board-horizontal .deck-pile .deck-count,
+.board-horizontal .discard-pile .discard-count {
+  font-size: 1rem !important;
+  font-weight: 700;
+}
+
+/* ==========================================
+   BOTONES DE ACCIÓN - COMPACTOS Y CLAROS
+   ========================================== */
+
+.board-horizontal .game-footer {
+  padding: 0.3rem !important;
+  gap: 0.25rem !important;
+  flex: 0;
+}
+
+.board-horizontal .game-footer .action-btn {
+  padding: 0.3rem 0.4rem !important;
+  font-size: 0.68rem !important;
+  min-height: 30px !important;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.board-horizontal .game-footer .action-btn.primary {
+  font-weight: 700;
+  background: linear-gradient(180deg, rgba(232, 197, 71, 0.15) 0%, rgba(232, 197, 71, 0.05) 100%);
+}
+
+/* Botón de terminar turno destacado */
+.board-horizontal .game-footer #btn-terminar-turno,
+.board-horizontal .game-footer #btn-end-turn {
+  background: linear-gradient(180deg, rgba(232, 197, 71, 0.2) 0%, rgba(232, 197, 71, 0.08) 100%) !important;
+  border-width: 2px !important;
+}
+
+/* ==========================================
+   LOG DE PARTIDA - MÁS GRANDE
+   ========================================== */
+
+.game-chat-panel {
+  height: 140px !important;
+  min-height: 120px !important;
+  max-height: 160px !important;
+  flex-shrink: 0;
+}
+
+.game-chat-title {
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.game-chat-messages {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8rem !important;
+  line-height: 1.4;
+}
+
+.game-chat-messages .log-msg {
+  padding: 4px 8px !important;
+  margin-bottom: 3px !important;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.02);
+}
+
+/* ==========================================
+   CARTAS - ESTILO MEJORADO
+   ========================================== */
+
+.card-hero,
+.card-mini {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.card-hero .nombre,
+.card-mini .nombre {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Iconos de carta más visibles */
+.card-hero .card-icon,
+.card-mini .card-icon {
+  font-size: 1.2rem;
+}
+
+/* Stats más legibles */
+.card-hero .stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  background: rgba(0,0,0,0.4);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* ==========================================
+   RESPONSIVE - PANTALLAS MEDIANAS
+   ========================================== */
+
+@media (max-height: 700px) {
+  .game-header {
+    padding: 0.3rem 0.8rem !important;
+  }
+  
+  .board-horizontal {
+    max-height: calc(100vh - 160px);
+    padding: 0.3rem !important;
+  }
+  
+  .board-horizontal .hero-slot {
+    width: clamp(55px, 8vw, 75px) !important;
+    min-height: clamp(70px, 9vh, 85px) !important;
+    padding: 3px !important;
+  }
+  
+  .board-horizontal .hand-slot {
+    width: clamp(40px, 5vw, 52px) !important;
+    height: clamp(55px, 7vh, 68px) !important;
+  }
+  
+  .board-horizontal .hidden-slot {
+    width: clamp(46px, 5.5vw, 56px) !important;
+    height: clamp(68px, 8.5vh, 82px) !important;
+    min-height: clamp(68px, 8.5vh, 82px) !important;
+  }
+  
+  .game-chat-panel {
+    height: 120px !important;
+    min-height: 100px !important;
+  }
+}
+
+@media (max-height: 600px) {
+  .game-header {
+    padding: 0.25rem 0.6rem !important;
+  }
+  
+  .turn-indicator {
+    font-size: 0.75rem !important;
+  }
+  
+  .board-horizontal {
+    max-height: calc(100vh - 140px);
+    padding: 0.2rem !important;
+    gap: 0.2rem !important;
+  }
+  
+  .board-horizontal .player-zone {
+    padding: 0.2rem !important;
+  }
+  
+  .board-horizontal .hero-slot {
+    width: clamp(48px, 7vw, 62px) !important;
+    min-height: clamp(60px, 8vh, 75px) !important;
+    padding: 2px !important;
+  }
+  
+  .board-horizontal .hand-slot {
+    width: clamp(36px, 4.5vw, 45px) !important;
+    height: clamp(48px, 6vh, 58px) !important;
+  }
+  
+  .board-horizontal .hidden-slot {
+    width: clamp(42px, 5vw, 52px) !important;
+    height: clamp(62px, 7.5vh, 72px) !important;
+    min-height: clamp(62px, 7.5vh, 72px) !important;
+  }
+  
+  .board-horizontal .deck-pile,
+  .board-horizontal .discard-pile {
+    width: clamp(38px, 5vw, 48px) !important;
+    height: clamp(50px, 6.5vh, 62px) !important;
+  }
+  
+  .board-horizontal .game-footer .action-btn {
+    padding: 0.25rem 0.35rem !important;
+    font-size: 0.6rem !important;
+    min-height: 26px !important;
+  }
+  
+  .game-chat-panel {
+    height: 100px !important;
+    min-height: 90px !important;
+  }
+  
+  .game-chat-title {
+    font-size: 0.7rem !important;
+    padding: 0.2rem 0.5rem !important;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE - PANTALLAS ANCHAS
+   ========================================== */
+
+@media (max-width: 1200px) {
+  .board-horizontal {
+    grid-template-columns: 1fr minmax(140px, 200px) 1fr !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .board-horizontal {
+    grid-template-columns: 1fr minmax(120px, 170px) 1fr !important;
+  }
+  
+  .board-horizontal .game-footer .action-btn {
+    font-size: 0.7rem !important;
+    padding: 0.35rem 0.4rem !important;
+  }
+}
+
+/* ==========================================
+   INDICADORES Y FEEDBACK
+   ========================================== */
+
+/* Turno del jugador - borde dorado brillante */
+#game-screen.turno-player #player-zone {
+  border-color: var(--border-gold) !important;
+  box-shadow: 
+    0 0 0 2px rgba(232, 197, 71, 0.4),
+    0 0 20px rgba(232, 197, 71, 0.2),
+    inset 0 0 15px rgba(232, 197, 71, 0.05) !important;
+}
+
+/* Turno del rival - borde rojo */
+#game-screen.turno-rival #rival-zone {
+  border-color: rgba(196, 30, 58, 0.6) !important;
+  box-shadow: 
+    0 0 0 2px rgba(196, 30, 58, 0.4),
+    0 0 20px rgba(196, 30, 58, 0.15) !important;
+}
+
+/* Carta seleccionada */
+.hand-slot.seleccionada,
+.hero-slot.seleccionado {
+  border-color: var(--gold-bright) !important;
+  box-shadow: 
+    0 0 0 3px rgba(232, 197, 71, 0.5),
+    0 0 25px rgba(232, 197, 71, 0.4) !important;
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+/* Objetivo de ataque */
+.hero-slot.objetivo-ataque {
+  border-color: #ef4444 !important;
+  box-shadow: 
+    0 0 0 3px rgba(239, 68, 68, 0.5),
+    0 0 25px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ==========================================
+   ANIMACIONES SUAVES
+   ========================================== */
+
+.hero-slot,
+.hand-slot,
+.hidden-slot,
+.action-btn {
+  transition: 
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease !important;
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ==========================================
+   MODALES - SIN SCROLL
+   ========================================== */
+
+.modal {
+  overflow: hidden !important;
+}
+
+.modal-content {
+  max-height: 90vh !important;
+  overflow: visible !important;
+}
+
+/* Modal de Game Over - compacto y sin scroll */
+#gameover-modal .modal-content,
+.gameover-content {
+  overflow: visible !important;
+  max-height: none !important;
+  min-width: auto !important;
+  padding: 1.5rem 2rem !important;
+}
+
+.gameover-content h2 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.gameover-content p {
+  font-size: 0.95rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.gameover-content .menu-btn {
+  min-width: 180px !important;
+  padding: 0.7rem 1.5rem !important;
+  font-size: 0.9rem !important;
+}
+
+/* Modal de selección - compacto */
+#selection-modal .modal-content {
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+  padding: 1rem 1.5rem !important;
+}
+
+#selection-modal h3 {
+  font-size: 1.1rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.selection-options {
+  max-height: 50vh;
+  overflow-y: auto;
+  gap: 0.4rem !important;
+}
+
+/* Botones de modal más compactos */
+.modal-content .menu-btn {
+  padding: 0.6rem 1.2rem !important;
+  font-size: 0.85rem !important;
+  min-height: auto !important;
+}
+
+/* ==========================================
+   BOTONES DEL HEADER
+   ========================================== */
+
+.header-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-settings {
+  background: linear-gradient(180deg, rgba(100, 100, 120, 0.3) 0%, rgba(60, 60, 80, 0.4) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-settings:hover {
+  background: linear-gradient(180deg, rgba(120, 120, 140, 0.4) 0%, rgba(80, 80, 100, 0.5) 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.btn-settings:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================
+   MODAL DE CONFIGURACIÓN
+   ========================================== */
+
+.settings-content {
+  max-width: 400px;
+  width: 90vw;
+  padding: 1.5rem !important;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid var(--border-gold);
+  border-radius: 12px;
+}
+
+.settings-title {
+  font-size: 1.4rem;
+  color: var(--gold-bright);
+  text-align: center;
+  margin-bottom: 1.25rem;
+  font-family: var(--font-title);
+  text-shadow: 0 0 10px rgba(232, 197, 71, 0.5);
+}
+
+.settings-section {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-section-title {
+  font-size: 0.9rem;
+  color: var(--gold-light);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(232, 197, 71, 0.3);
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  gap: 0.75rem;
+}
+
+.setting-label {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  flex: 1;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(100, 100, 100, 0.5);
+  border-radius: 24px;
+  transition: 0.3s;
+}
+
+.toggle-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: linear-gradient(90deg, #e8c547 0%, #d4a439 100%);
+  box-shadow: 0 0 10px rgba(232, 197, 71, 0.5);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+/* Volume Slider */
+.volume-slider {
+  flex: 1;
+  max-width: 100px;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(100, 100, 100, 0.5);
+  border-radius: 3px;
+  outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(180deg, #e8c547 0%, #d4a439 100%);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(232, 197, 71, 0.5);
+  transition: transform 0.2s;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(180deg, #e8c547 0%, #d4a439 100%);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 8px rgba(232, 197, 71, 0.5);
+}
+
+.volume-value {
+  font-size: 0.75rem;
+  color: var(--gold-light);
+  min-width: 35px;
+  text-align: right;
+}
+
+/* Botones de configuración */
+.settings-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.btn-settings-close {
+  min-width: 120px;
+  background: linear-gradient(180deg, rgba(232, 197, 71, 0.15) 0%, rgba(232, 197, 71, 0.08) 100%);
+  border: 1px solid var(--border-gold);
+}
+
+.btn-settings-close:hover {
+  background: linear-gradient(180deg, rgba(232, 197, 71, 0.25) 0%, rgba(232, 197, 71, 0.15) 100%);
+}

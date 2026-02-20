@@ -64,26 +64,35 @@ const GameLog = {
     return jugador === 'player' ? 'Tú' : 'Rival';
   },
 
+  /** Devuelve nombre del héroe con etiqueta (Tú) o (Enemigo) para el log */
+  _hero(nombre, jugador) {
+    if (!nombre) return '?';
+    const etiqueta = jugador === 'player' ? ' (Tú)' : ' (Enemigo)';
+    return nombre + etiqueta;
+  },
+
   addDamage(atacanteJugador, atacanteNombre, defensorNombre, dano) {
+    const defensorJugador = atacanteJugador === 'player' ? 'rival' : 'player';
     const quien = this._nombreJugador(atacanteJugador);
     const esTu = Game.estado && Game.estado.modo !== 'local' && atacanteJugador === 'player';
     const verboAtacar = esTu ? 'has atacado' : 'ha atacado';
     const verboHacer = esTu ? 'has hecho' : 'ha hecho';
     this.mensajes.push({
       type: 'damage',
-      html: `${quien} ${verboAtacar} con <strong>${atacanteNombre || '?'}</strong> a <strong>${defensorNombre || '?'}</strong> y le ${verboHacer} <span class="log-value">-${dano}</span> de daño 🩸`
+      html: `${quien} ${verboAtacar} con <strong>${this._hero(atacanteNombre, atacanteJugador)}</strong> a <strong>${this._hero(defensorNombre, defensorJugador)}</strong> y le ${verboHacer} <span class="log-value">-${dano}</span> de daño 🩸`
     });
     this._trim();
     this._render();
   },
 
   addBlockedDamage(atacanteJugador, atacanteNombre, defensorNombre, danoBloqueado) {
+    const defensorJugador = atacanteJugador === 'player' ? 'rival' : 'player';
     const quien = this._nombreJugador(atacanteJugador);
     const esTu = Game.estado && Game.estado.modo !== 'local' && atacanteJugador === 'player';
     const verboAtacar = esTu ? 'has atacado' : 'ha atacado';
     this.mensajes.push({
       type: 'block',
-      html: `${quien} ${verboAtacar} con <strong>${atacanteNombre || '?'}</strong> a <strong>${defensorNombre || '?'}</strong> y se han bloqueado <span class="log-value">${danoBloqueado}</span> de daño 🛡️`
+      html: `${quien} ${verboAtacar} con <strong>${this._hero(atacanteNombre, atacanteJugador)}</strong> a <strong>${this._hero(defensorNombre, defensorJugador)}</strong> y se han bloqueado <span class="log-value">${danoBloqueado}</span> de daño 🛡️`
     });
     this._trim();
     this._render();
@@ -95,7 +104,7 @@ const GameLog = {
     const verbo = esTu ? 'has curado' : 'ha curado';
     this.mensajes.push({
       type: 'heal',
-      html: `${quien} ${verbo} a <strong>${heroeNombre || '?'}</strong>: <span class="log-value">+${cantidad}</span> 💚`
+      html: `${quien} ${verbo} a <strong>${this._hero(heroeNombre, jugador)}</strong>: <span class="log-value">+${cantidad}</span> 💚`
     });
     this._trim();
     this._render();
@@ -113,7 +122,7 @@ const GameLog = {
     const verbo = esTu ? 'has activado' : 'ha activado';
     this.mensajes.push({
       type: 'effect',
-      html: `${quien} ${verbo} <strong>${efectoNombre}</strong>: ${descripcion} ✨`
+      html: `${quien} ${verbo} <strong>${this._hero(efectoNombre, jugador)}</strong>: ${descripcion} ✨`
     });
     this._trim();
     this._render();
@@ -122,12 +131,12 @@ const GameLog = {
   addHeroKilled(jugador, heroeNombre, esEnemigo) {
     const quien = this._nombreJugador(jugador);
     const esTu = Game.estado && Game.estado.modo !== 'local' && jugador === 'player';
-    const tipo = esEnemigo ? 'enemigo' : 'aliado';
     const icono = esEnemigo ? '⚔️' : '💀';
     const verbo = esTu ? 'has eliminado' : 'ha eliminado';
+    const jugadorHeroe = esEnemigo ? 'rival' : 'player';
     this.mensajes.push({
       type: 'kill',
-      html: `${quien} ${verbo} a <strong>${heroeNombre || '?'}</strong> ${icono}`
+      html: `${quien} ${verbo} a <strong>${this._hero(heroeNombre, jugadorHeroe)}</strong> ${icono}`
     });
     this._trim();
     this._render();
@@ -994,21 +1003,59 @@ const UI = {
     modal.classList.remove('hidden');
   },
 
-  animarAtaque(atacanteSlotEl, defensorSlotEl, cb) {
-    if (atacanteSlotEl) atacanteSlotEl.classList.add('ataque-anim');
-    if (defensorSlotEl) defensorSlotEl.classList.add('recibir-dano');
-    setTimeout(() => {
-      if (atacanteSlotEl) atacanteSlotEl.classList.remove('ataque-anim');
-      if (defensorSlotEl) defensorSlotEl.classList.remove('recibir-dano');
-      if (cb) cb();
-    }, 650);
+  animarAtaque(atacanteSlotEl, defensorSlotEl, cb, dano = 0) {
+    // Usar el sistema de animaciones premium si está disponible
+    if (typeof Animations !== 'undefined' && Animations.attackLunge) {
+      Animations.attackLunge(atacanteSlotEl, defensorSlotEl, () => {
+        if (defensorSlotEl && dano > 0) {
+          const rect = defensorSlotEl.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          
+          // Mostrar número de daño flotante
+          Animations.showFloatingNumber(centerX, centerY - 20, dano, dano >= 5 ? 'critical' : 'damage');
+          
+          // Efecto de partículas de daño
+          if (typeof ParticleSystem !== 'undefined') {
+            ParticleSystem.damageEffect(centerX, centerY, dano);
+          }
+        }
+        if (cb) cb();
+      });
+    } else {
+      // Fallback al sistema original
+      if (atacanteSlotEl) atacanteSlotEl.classList.add('ataque-anim');
+      if (defensorSlotEl) defensorSlotEl.classList.add('recibir-dano');
+      setTimeout(() => {
+        if (atacanteSlotEl) atacanteSlotEl.classList.remove('ataque-anim');
+        if (defensorSlotEl) defensorSlotEl.classList.remove('recibir-dano');
+        if (cb) cb();
+      }, 650);
+    }
   },
 
-  animarCuracion(heroSlotEl, cb) {
+  animarCuracion(heroSlotEl, cb, cantidad = 2) {
     if (!heroSlotEl) { if (cb) cb(); return; }
+    
+    const rect = heroSlotEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Efectos de partículas premium
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.healEffect(centerX, centerY, cantidad);
+    }
+    
+    // Número flotante de curación
+    if (typeof Animations !== 'undefined') {
+      Animations.showFloatingNumber(centerX, centerY - 20, cantidad, 'heal');
+    }
+    
+    // Animación CSS
     heroSlotEl.classList.remove('efecto-curacion');
     heroSlotEl.offsetHeight;
     heroSlotEl.classList.add('efecto-curacion');
+    
     setTimeout(() => {
       heroSlotEl.classList.remove('efecto-curacion');
       if (cb) cb();
@@ -1017,9 +1064,26 @@ const UI = {
 
   animarTrampa(slotEl, cb) {
     if (!slotEl) { if (cb) cb(); return; }
+    
+    const rect = slotEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Efectos de partículas premium
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.trapActivated(centerX, centerY);
+    }
+    
+    // Screen shake suave
+    if (typeof Animations !== 'undefined') {
+      Animations.lightScreenShake();
+    }
+    
+    // Animación CSS
     slotEl.classList.remove('efecto-trampa');
     slotEl.offsetHeight;
     slotEl.classList.add('efecto-trampa');
+    
     setTimeout(() => {
       slotEl.classList.remove('efecto-trampa');
       if (cb) cb();
@@ -1028,26 +1092,121 @@ const UI = {
 
   animarEnergiaPuesta(heroSlotEl) {
     if (!heroSlotEl) return;
+    
+    const rect = heroSlotEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Efectos de partículas premium
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.energyPlaced(centerX, centerY);
+    }
+    
+    // Número flotante
+    if (typeof Animations !== 'undefined') {
+      Animations.showFloatingNumber(centerX, centerY - 30, 1, 'energy');
+    }
+    
     heroSlotEl.classList.add('energy-added');
     setTimeout(() => heroSlotEl.classList.remove('energy-added'), 550);
   },
 
-  mostrarMensajeHeroeAsesinado(tipo) {
+  mostrarMensajeHeroeAsesinado(tipo, slotEl = null) {
     const el = document.getElementById('hero-kill-message');
     const textEl = document.getElementById('hero-kill-text');
     if (!el || !textEl) return;
+    
+    // Screen shake fuerte
+    if (typeof Animations !== 'undefined') {
+      Animations.heavyScreenShake();
+    }
+    
+    // Partículas de muerte
+    if (slotEl && typeof ParticleSystem !== 'undefined') {
+      const rect = slotEl.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      ParticleSystem.heroDefeated(centerX, centerY, tipo === 'enemigo');
+    }
+    
+    // Animación de muerte del elemento
+    if (slotEl && typeof Animations !== 'undefined') {
+      Animations.heroDeath(slotEl, tipo === 'enemigo');
+    }
+    
     el.classList.remove('hero-kill-aliado', 'hero-kill-enemigo');
     if (tipo === 'aliado') {
       textEl.textContent = 'Aliado Asesinado';
       el.classList.add('hero-kill-aliado');
     } else {
-      textEl.textContent = 'Enemigo Asesinado';
+      textEl.textContent = 'Enemigo Eliminado';
       el.classList.add('hero-kill-enemigo');
     }
     el.classList.remove('hidden');
     clearTimeout(this._heroKillTimeout);
     this._heroKillTimeout = setTimeout(() => {
       el.classList.add('hidden');
-    }, 3000);
+    }, 2500);
+  },
+
+  // Mostrar indicador de turno con efectos premium
+  mostrarIndicadorTurno(esJugador) {
+    if (typeof Animations !== 'undefined') {
+      Animations.turnStart(esJugador);
+    }
+  },
+
+  // Animar victoria con efectos premium
+  animarVictoria(cb) {
+    if (typeof Animations !== 'undefined') {
+      Animations.victoryAnimation(cb);
+    } else if (cb) {
+      cb();
+    }
+    
+    // Partículas de victoria
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.victoryBurst(window.innerWidth / 2, window.innerHeight / 2);
+    }
+  },
+
+  // Animar derrota con efectos premium
+  animarDerrota(cb) {
+    if (typeof Animations !== 'undefined') {
+      Animations.defeatAnimation(cb);
+    } else if (cb) {
+      cb();
+    }
+  },
+
+  // Animar habilidad especial
+  animarHabilidadEspecial(slotEl, habilidadId) {
+    if (!slotEl) return;
+    
+    const rect = slotEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.abilityEffect(centerX, centerY, habilidadId);
+    }
+    
+    if (typeof Animations !== 'undefined') {
+      Animations.dramaticZoom(slotEl);
+    }
+  },
+
+  // Iniciar partículas de ambiente
+  iniciarEfectosAmbiente() {
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.startAmbientParticles();
+    }
+  },
+
+  // Detener partículas de ambiente
+  detenerEfectosAmbiente() {
+    if (typeof ParticleSystem !== 'undefined') {
+      ParticleSystem.stopAmbientParticles();
+    }
   }
 };

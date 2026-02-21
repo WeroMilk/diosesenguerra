@@ -356,7 +356,7 @@
 
 .board-horizontal .game-footer .action-btn.primary {
   font-weight: 700;
-  color: #fff !important;
+  color: #1a1a1a !important;
   background: linear-gradient(180deg, rgba(232, 197, 71, 0.15) 0%, rgba(232, 197, 71, 0.05) 100%);
 }
 

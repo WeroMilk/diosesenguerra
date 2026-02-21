@@ -4,16 +4,23 @@
  * Carga al final para tener prioridad donde haga falta.
  */
 
-/* ========== BASE GLOBAL ========== */
+/* ========== BASE GLOBAL - SIN SCROLL EN LA PÁGINA ========== */
 html {
   font-size: clamp(15px, 2vw, 18px) !important;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  height: 100%;
 }
 
 body {
-  min-width: 280px;
-  overflow-x: hidden;
+  min-width: 0;
+  max-width: 100vw;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  height: 100%;
 }
 
 /* Contraste mínimo en texto */
@@ -111,13 +118,13 @@ body {
 
 .game-screen-full {
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
 }
 
 .game-screen-full .board-horizontal {
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
 }
 

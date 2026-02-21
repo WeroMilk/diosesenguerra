@@ -77,14 +77,17 @@ body {
   left: 0;
   top: 0;
   width: 100vw;
+  max-width: 100%;
   height: 100vh;
   inset: 0;
   min-height: 100vh;
   overflow: hidden;
+  overflow-x: hidden !important;
   align-items: center;
   justify-content: center;
   padding: 1rem;
   z-index: 1;
+  box-sizing: border-box;
 }
 /* Pantalla de juego: castillo de fondo + contenido encima */
 #game-screen.active {
@@ -1275,29 +1278,30 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
-/* Layout SIEMPRE horizontal: 3 columnas (jugador | centro | rival), NUNCA apilar arriba-abajo */
+/* Layout SIEMPRE horizontal: 3 columnas (jugador | centro | rival), sin scroll: columnas flexibles */
 .board-horizontal,
 #game-screen .board.board-horizontal,
 #game-screen.active .board.board-horizontal {
   display: grid !important;
-  grid-template-columns: minmax(260px, 1fr) minmax(200px, 280px) minmax(260px, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 280px) minmax(0, 1fr) !important;
   grid-template-rows: 1fr !important;
   gap: 0.75rem;
   flex: 1;
   min-height: 0;
   padding: 0.75rem;
   width: 100%;
-  max-width: none;
-  min-width: 800px;
+  max-width: 100%;
+  min-width: 0;
   flex-direction: unset !important;
 }
 @media (max-width: 900px) {
   .game-screen-full .board-horizontal,
   #game-screen .board.board-horizontal {
-    min-width: 100%;
-    overflow-x: auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
     display: grid !important;
-    grid-template-columns: minmax(200px, 1fr) minmax(160px, 240px) minmax(200px, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 140px) minmax(0, 1fr) !important;
     grid-template-rows: 1fr !important;
   }
 }
@@ -2102,7 +2106,7 @@ body {
 }
 .action-btn.primary {
   border-color: var(--border-gold);
-  color: #fff !important;
+  color: #1a1a1a !important;
 }
 .action-btn.secondary {
   border-color: var(--border-silver);
@@ -2395,16 +2399,16 @@ body {
   .game-chat-panel { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* Tablet y pantallas medianas */
+/* Tablet y pantallas medianas - sin scroll horizontal */
 @media (max-width: 900px) {
   .game-screen-full .board-horizontal,
   #game-screen .board.board-horizontal,
   #game-screen.active .board.board-horizontal {
     min-width: 0;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    grid-template-columns: minmax(180px, 1fr) minmax(140px, 200px) minmax(180px, 1fr) !important;
+    max-width: 100%;
+    overflow-x: hidden;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 160px) minmax(0, 1fr) !important;
     padding: 0.5rem;
     gap: 0.5rem;
   }
@@ -2762,6 +2766,7 @@ body {
   .board-horizontal .hidden-slot .card-mini .nombre,
   .board-horizontal .hidden-slot .card-soporte .nombre { font-size: 0.7rem !important; }
   .board-horizontal .game-footer .action-btn { font-size: 0.78rem; min-height: 40px; color: #fff; font-weight: 600; }
+  .board-horizontal .game-footer .action-btn.primary { color: #1a1a1a !important; }
   #turn-number-label, #turn-label, #actions-left { font-size: 0.85rem !important; color: #fff !important; }
   .game-chat-title { font-size: 0.9rem !important; color: #fff !important; }
   .game-chat-messages { font-size: 0.85rem !important; color: rgba(255,255,255,0.95) !important; }

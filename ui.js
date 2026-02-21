@@ -633,12 +633,30 @@ const UI = {
     rivalZone.querySelectorAll('.hidden-slot').forEach((slot, i) => {
       this.rellenarHiddenSlot(slot, s.rival.bocaAbajo[i]);
     });
-    playerZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
-      this.rellenarHandSlot(slot, s.player.mano[i], i);
-    });
-    rivalZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
-      this.rellenarHandSlotRival(slot, s.rival.mano[i], i);
-    });
+    if (s.modo === 'local') {
+      if (s.turnoActual === 'player') {
+        playerZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
+          this.rellenarHandSlot(slot, s.player.mano[i], i);
+        });
+        rivalZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
+          this.rellenarHandSlotRival(slot, s.rival.mano[i], i);
+        });
+      } else {
+        playerZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
+          this.rellenarHandSlotRival(slot, s.player.mano[i], i);
+        });
+        rivalZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
+          this.rellenarHandSlot(slot, s.rival.mano[i], i);
+        });
+      }
+    } else {
+      playerZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
+        this.rellenarHandSlot(slot, s.player.mano[i], i);
+      });
+      rivalZone.querySelectorAll('.hand-slot').forEach((slot, i) => {
+        this.rellenarHandSlotRival(slot, s.rival.mano[i], i);
+      });
+    }
     document.getElementById('player-name').textContent = s.modo === 'local' ? 'Jugador 1' : 'Tú';
     document.getElementById('rival-name').textContent = s.modo === 'local' ? 'Jugador 2' : 'Rival';
 

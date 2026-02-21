@@ -14,6 +14,8 @@
   let olaSurvivalActual = 1;
   let ultimoGanadorPartida = null;
   let sugerenciaActual = null;
+  /** Timeout del auto-pase cuando el jugador tiene 0 acciones; se cancela al hacer clic en Terminar turno */
+  let timeoutAutoTerminarTurno = null;
   function esModoVsIA() { return modoPartida === 'ia' || modoPartida === 'campania' || modoPartida === 'torneo' || modoPartida === 'survival' || modoPartida === 'desafio'; }
   function swapParaSugerencia() {
     const s = Game.estado;
@@ -406,8 +408,17 @@
       try { if (typeof actualizarMenuStats === 'function') actualizarMenuStats(); } catch (e) { console.warn('actualizarMenuStats:', e); }
       UI.afterRender = function () {
         var s = Game.estado;
-        if (s && s.turnoActual === 'player' && s.accionesRestantes === 0 && !s.ganador && s.fase === 'acciones') {
-          setTimeout(terminarTurno, 500);
+        var esLocalConCeroAcciones = s && s.modo === 'local' && s.accionesRestantes === 0 && !s.ganador && s.fase === 'acciones';
+        var esTurnoPlayerConCero = s && s.turnoActual === 'player' && s.accionesRestantes === 0 && !s.ganador && s.fase === 'acciones';
+        if (esTurnoPlayerConCero || (esLocalConCeroAcciones && s.turnoActual === 'rival')) {
+          if (timeoutAutoTerminarTurno != null) return;
+          timeoutAutoTerminarTurno = setTimeout(function () {
+            timeoutAutoTerminarTurno = null;
+            var st = Game.estado;
+            if (!st || st.ganador) return;
+            if (st.turnoActual === 'player' && st.accionesRestantes === 0) terminarTurno();
+            else if (st.modo === 'local' && st.turnoActual === 'rival' && st.accionesRestantes === 0) terminarTurno();
+          }, 500);
         }
       };
       window.__menuInitDone = true;
@@ -1485,22 +1496,30 @@
   }
 
   function terminarTurno() {
+    if (timeoutAutoTerminarTurno != null) {
+      clearTimeout(timeoutAutoTerminarTurno);
+      timeoutAutoTerminarTurno = null;
+    }
     if (modoPartida === 'online' && typeof Online !== 'undefined') Online.enviarAccion({ tipo: 'terminar_turno' });
     const s = Game.estado;
     cancelarModoInteractivo();
-    Game.terminarTurno();
+    try {
+      Game.terminarTurno();
+    } catch (e) {
+      if (typeof console !== 'undefined') console.error('terminarTurno', e);
+    }
     if (typeof Sounds !== 'undefined' && Sounds.robar) Sounds.robar();
     UI.renderizarTablero();
     comprobarGanador();
     const stateNow = Game.estado;
     if (stateNow.ganador) return;
-    
+
     // Sonido de inicio de turno rival (sin popup intrusivo)
     if (stateNow.turnoActual === 'rival') {
       if (typeof Sounds !== 'undefined' && Sounds.inicioTurnoRival) Sounds.inicioTurnoRival();
     }
-    
-    if (stateNow.turnoActual === 'rival' && esModoVsIA()) setTimeout(turnoIA, 1800);
+
+    if (stateNow.turnoActual === 'rival' && esModoVsIA()) setTimeout(turnoIA, 800);
   }
 
   function rendirse() {
